@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import 'usingOraclize.sol';
+import 'usingProvable.sol';
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -367,7 +367,84 @@ interface LendingPoolAddressesProvider {
     function getLendingPoolCore() external view returns (address);
 }
 
-contract yeldDAI is usingOraclize, ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
+contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
+  address public yDAIAddress;
+  uint256 public initialPrice = 10000;
+  uint256 public fromYeldDAIToYeld = initialPrice * (10 ** 18); // Must be divided by 1e18 to get the real value
+  uint256 public fromDAIToYeldDAIPrice = fromYeldDAIToYeld / initialPrice; // Must be divided by 1e18 to get the real value
+  uint256 public yeldReward = 1;
+  uint256 public yeldDAIDecimals = 18; // The price has 18 decimals meaning you'll have to divide by 1e18 to get the real value
+  
+  modifier onlyYDAI {
+    require(msg.sender == yDAIAddress);
+    _;
+  }
+
+  constructor() public ERC20Detailed("yeld DAI", "yeldDAI", 18) {}
+
+  function setYDAI(address _yDAIAddress) public onlyOwner {
+    yDAIAddress = _yDAIAddress;
+  }
+  
+  function mint(address _to, uint256 _amount) public onlyYDAI {
+    _mint(_to, _amount);
+  }
+
+  function burn(address _to, uint256 _amount) public onlyYDAI {
+    _burn(_to, _amount);
+  }
+  
+  /// @notice Starts the process of ending a lottery by executing the function that generates random numbers from oraclize
+  /// @return queryId The queryId identifier to associate a lottery ID with a query ID
+  function startOracle() public payable onlyOwner {
+      require(msg.value >= 0.01 ether, 'The contract must hold at least 0.01 eth');
+      provable_query(86400, "URL", "json(https://api.kraken.com/0/public/Ticker?pair=ETHXBT).result.XETHXXBT.c.0"); // Call everyday
+  }
+
+  /// Everyday the oracle will be called at about 12am to calculate how many YELD each staker gets,
+  /// to get half the generated yield by everybody, use it to buy YELD on uniswap and burn it,
+  /// and to increase the 1% retirement yield treasury that can be redeemed by holders
+  /// @notice Callback function that gets called by oraclize when the random number is generated
+  /// @param _queryId The query id that was generated to proofVerify
+  /// @param _result String that contains the number generated
+  /// @param _proof A string with a proof code to verify the authenticity of the number generation
+  function __callback(
+    bytes32 _queryId,
+    string memory _result,
+    bytes memory _proof
+  ) public {
+    require(msg.sender == oraclize_cbAddress(), 'The callback function can only be executed by oraclize');
+
+    // Update the price
+    yeldReward++;
+    fromYeldDAIToYeld = initialPrice.mul(10 ** 18).div(yeldReward);
+    fromDAIToYeldDAIPrice = fromYeldDAIToYeld.div(initialPrice);
+
+    provable_query(86400, "URL", "json(https://api.kraken.com/0/public/Ticker?pair=ETHXBT).result.XETHXXBT.c.0"); // Call everyday
+  }
+  
+  function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
+    IERC20(_token).transfer(msg.sender, amount);
+  }
+
+  function extractETHIfStuck() public onlyOwner {
+    owner.transfer(address(this).balance);
+  }
+}
+
+interface IYeldDAI {
+  function yDAIAddress() public view returns(address);
+  function initialPrice() public view returns(uint256);
+  function fromYeldDAIToYeld() public view returns(uint256);
+  function fromDAIToYeldDAIPrice() public view returns(uint256);
+  function yeldReward() public view returns(uint256);
+  function yeldDAIDecimals() public view returns(uint256);
+  function mint(address _to, uint256 _amount) public;
+  function burn(address _to, uint256 _amount) public;
+  function balanceOf(address _of) public returns(uint256);
+}
+
+contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -384,6 +461,8 @@ contract yeldDAI is usingOraclize, ERC20, ERC20Detailed, ReentrancyGuard, Struct
   address public apr;
   address public chai;
 
+  IYeldDAI public yeldDAI;
+
   enum Lender {
       NONE,
       DYDX,
@@ -394,7 +473,7 @@ contract yeldDAI is usingOraclize, ERC20, ERC20Detailed, ReentrancyGuard, Struct
 
   Lender public provider = Lender.NONE;
 
-  constructor (address _yeldTokenAddress) public ERC20Detailed("yeld DAI", "yeldDAI", 18) {
+  constructor (address _yeldDAIAddress) public payable ERC20Detailed("yearn DAI", "yDAI", 18) {
     token = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
@@ -405,66 +484,52 @@ contract yeldDAI is usingOraclize, ERC20, ERC20Detailed, ReentrancyGuard, Struct
     compound = address(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
     chai = address(0x06AF07097C9Eeb7fD685c692751D5C66dB49c215);
     dToken = 3;
-    yeldTokenAddress = _yeldTokenAddress;
+    yeldDAI = IYeldDAI(_yeldDAIAddress);
     approveToken();
-    oraclize_setProof(proofType_Ledger);
   }
 
   mapping(bytes32 => uint256) public numberOfParticipants;
 
-  /// @notice Starts the process of ending a lottery by executing the function that generates random numbers from oraclize
-  /// @return queryId The queryId identifier to associate a lottery ID with a query ID
-  function startOracle() public payable onlyOwner {
-      require(msg.value >= 0.01 ether, 'The contract must hold at least 0.01 eth');
-      string memory query = strConcat("random number between 0 and ", uint2str(_maxNumber));
-      bytes32 queryId = oraclize_query("WolframAlpha", query);
-      emit QueryRandom(query);
-      numberOfParticipants[queryId] = _maxNumber;
-      return queryId;
+  function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
+    IERC20(_token).transfer(msg.sender, amount);
   }
 
-  /// @notice Callback function that gets called by oraclize when the random number is generated
-  /// @param _queryId The query id that was generated to proofVerify
-  /// @param _result String that contains the number generated
-  /// @param _proof A string with a proof code to verify the authenticity of the number generation
-  function dailyOracle(
-    bytes32 _queryId,
-    string memory _result,
-    bytes memory _proof
-  ) public {
-    require(msg.sender == oraclize_cbAddress(), 'The callback function can only be executed by oraclize');
-    // emit GeneratedRandom(_queryId, numberOfParticipants[_queryId], parseInt(_result));
-    // hydroLottery.endLottery(_queryId, parseInt(_result));
-  }
-
-
-
-  function getBlockNumber() public view returns(uint256) {
-    return block.number;
+  function extractETHIfStuck() public onlyOwner {
+    owner.transfer(address(this).balance);
   }
 
   function deposit(uint256 _amount)
       external
       nonReentrant
   {
-      require(_amount > 0, "deposit must be greater than 0");
-      pool = calcPoolValueInToken();
-      IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+    require(_amount > 0, "deposit must be greater than 0");
+    pool = calcPoolValueInToken();
+    IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
-      // withdrawYeld();
-      // blockStartedStaking[msg.sender] = block.number;
-      deposited[msg.sender] = deposited[msg.sender].add(_amount);
+    // Yeld
+    redeemYeld();
+    uint256 yeldDAIToReceive = msg.value.mul(yeldDAI.fromDAIToYeldDAIPrice()).div(1 ** yeldDAI.yeldDAIDecimals());
+    deposited[msg.sender] = yeldDAIToReceive
+    yeldDAI.mint(msg.sender, yeldDAIToReceive);
+    // Yeld
 
-      // Calculate pool shares
-      uint256 shares = 0;
-      if (pool == 0) {
-        shares = _amount;
-        pool = _amount;
-      } else {
-        shares = (_amount.mul(_totalSupply)).div(pool);
-      }
-      pool = calcPoolValueInToken();
-      _mint(msg.sender, shares);
+    // Calculate pool shares
+    uint256 shares = 0;
+    if (pool == 0) {
+      shares = _amount;
+      pool = _amount;
+    } else {
+      shares = (_amount.mul(_totalSupply)).div(pool);
+    }
+    pool = calcPoolValueInToken();
+    _mint(msg.sender, shares);
+  }
+
+  function redeemYeld() public {
+    uint256 myYeldDAIBalance = yeldDAI.balanceOf(msg.sender);
+    uint256 yeldToRedeem = myYeldDAIBalance.div(yeldDAI.fromYeldDAIToYeld()).div(1 ** yeldDAI.yeldDAIDecimals());
+    yeldDAI.burn(msg.sender, deposited[msg.sender]);
+    deposited[msg.sender] = 0;
   }
 
   // No rebalance implementation for lower fees and faster swaps
@@ -485,13 +550,6 @@ contract yeldDAI is usingOraclize, ERC20, ERC20Detailed, ReentrancyGuard, Struct
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
       _totalSupply = _totalSupply.sub(_shares);
 
-      // Yeld
-      // accomulatedYeldStakersBalance = accomulatedYeldStakersBalance.sub(yeldUserBalances[msg.sender]);
-      // yeldUserBalances[msg.sender] = 0;
-      deposited[msg.sender] = 0;
-
-
-
       emit Transfer(msg.sender, address(0), _shares);
 
       // Check balance
@@ -503,7 +561,7 @@ contract yeldDAI is usingOraclize, ERC20, ERC20Detailed, ReentrancyGuard, Struct
       IERC20(token).safeTransfer(msg.sender, r);
       pool = calcPoolValueInToken();
 
-      withdrawYeld();
+      redeemYeld();
   }
 
   function recommend() public view returns (Lender) {
