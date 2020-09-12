@@ -1247,14 +1247,14 @@ contract Context {
 }
 
 contract Ownable is Context {
-    address private _owner;
+    address payable private _owner;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     constructor () internal {
         _owner = _msgSender();
         emit OwnershipTransferred(address(0), _owner);
     }
-    function owner() public view returns (address) {
+    function owner() public view returns (address payable) {
         return _owner;
     }
     modifier onlyOwner() {
@@ -1268,10 +1268,10 @@ contract Ownable is Context {
         emit OwnershipTransferred(_owner, address(0));
         _owner = address(0);
     }
-    function transferOwnership(address newOwner) public onlyOwner {
+    function transferOwnership(address payable newOwner) public onlyOwner {
         _transferOwnership(newOwner);
     }
-    function _transferOwnership(address newOwner) internal {
+    function _transferOwnership(address payable newOwner) internal {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         emit OwnershipTransferred(_owner, newOwner);
         _owner = newOwner;
@@ -1627,11 +1627,8 @@ contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
   
   
   function __callback(
-    bytes32 _queryId,
-    string memory _result,
-    bytes memory _proof
   ) public {
-    require(msg.sender == oraclize_cbAddress(), 'The callback function can only be executed by oraclize');
+    require(msg.sender == provable_cbAddress(), 'The callback function can only be executed by oraclize');
 
     
     yeldReward++;
@@ -1642,24 +1639,24 @@ contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
   }
   
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
-    IERC20(_token).transfer(msg.sender, amount);
+    IERC20(_token).transfer(msg.sender, _amount);
   }
 
   function extractETHIfStuck() public onlyOwner {
-    owner.transfer(address(this).balance);
+    owner().transfer(address(this).balance);
   }
 }
 
 interface IYeldDAI {
-  function yDAIAddress() public view returns(address);
-  function initialPrice() public view returns(uint256);
-  function fromYeldDAIToYeld() public view returns(uint256);
-  function fromDAIToYeldDAIPrice() public view returns(uint256);
-  function yeldReward() public view returns(uint256);
-  function yeldDAIDecimals() public view returns(uint256);
-  function mint(address _to, uint256 _amount) public;
-  function burn(address _to, uint256 _amount) public;
-  function balanceOf(address _of) public returns(uint256);
+  function yDAIAddress() external view returns(address);
+  function initialPrice() external view returns(uint256);
+  function fromYeldDAIToYeld() external view returns(uint256);
+  function fromDAIToYeldDAIPrice() external view returns(uint256);
+  function yeldReward() external view returns(uint256);
+  function yeldDAIDecimals() external view returns(uint256);
+  function mint(address _to, uint256 _amount) external;
+  function burn(address _to, uint256 _amount) external;
+  function balanceOf(address _of) external returns(uint256);
 }
 
 contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
@@ -1679,7 +1676,10 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   address public apr;
   address public chai;
 
-  IYeldDAI public yeldDAI;
+  IYeldDAI public yeldDAIInstance;
+  IERC20 public yeldToken;
+
+  mapping(address => uint256) public deposited;
 
   enum Lender {
       NONE,
@@ -1691,7 +1691,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
   Lender public provider = Lender.NONE;
 
-  constructor (address _yeldDAIAddress) public payable ERC20Detailed("yearn DAI", "yDAI", 18) {
+  constructor (address _yeldToken, address _yeldDAIAddress) public payable ERC20Detailed("yearn DAI", "yDAI", 18) {
     token = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
@@ -1702,18 +1702,19 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     compound = address(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
     chai = address(0x06AF07097C9Eeb7fD685c692751D5C66dB49c215);
     dToken = 3;
-    yeldDAI = IYeldDAI(_yeldDAIAddress);
+    yeldDAIInstance = IYeldDAI(_yeldDAIAddress);
+    yeldToken = IERC20(_yeldToken);
     approveToken();
   }
 
   mapping(bytes32 => uint256) public numberOfParticipants;
 
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
-    IERC20(_token).transfer(msg.sender, amount);
+    IERC20(_token).transfer(msg.sender, _amount);
   }
 
   function extractETHIfStuck() public onlyOwner {
-    owner.transfer(address(this).balance);
+    owner().transfer(address(this).balance);
   }
 
   function deposit(uint256 _amount)
@@ -1726,9 +1727,9 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
     
     redeemYeld();
-    uint256 yeldDAIToReceive = msg.value.mul(yeldDAI.fromDAIToYeldDAIPrice()).div(1 ** yeldDAI.yeldDAIDecimals());
+    uint256 yeldDAIToReceive = _amount.mul(yeldDAIInstance.fromDAIToYeldDAIPrice()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
     deposited[msg.sender] = yeldDAIToReceive;
-    yeldDAI.mint(msg.sender, yeldDAIToReceive);
+    yeldDAIInstance.mint(msg.sender, yeldDAIToReceive);
     
 
     
@@ -1744,10 +1745,13 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   }
 
   function redeemYeld() public {
-    uint256 myYeldDAIBalance = yeldDAI.balanceOf(msg.sender);
-    uint256 yeldToRedeem = myYeldDAIBalance.div(yeldDAI.fromYeldDAIToYeld()).div(1 ** yeldDAI.yeldDAIDecimals());
-    yeldDAI.burn(msg.sender, deposited[msg.sender]);
+    uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
+    if (myYeldDAIBalance == 0) return;
+
+    uint256 yeldToRedeem = myYeldDAIBalance.div(yeldDAIInstance.fromYeldDAIToYeld()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
+    yeldDAIInstance.burn(msg.sender, deposited[msg.sender]);
     deposited[msg.sender] = 0;
+    yeldToken.transfer(msg.sender, yeldToRedeem);
   }
 
   
