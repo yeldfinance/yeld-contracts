@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import 'usingProvable.sol';
+import './usingProvable.sol';
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -509,7 +509,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     // Yeld
     redeemYeld();
     uint256 yeldDAIToReceive = msg.value.mul(yeldDAI.fromDAIToYeldDAIPrice()).div(1 ** yeldDAI.yeldDAIDecimals());
-    deposited[msg.sender] = yeldDAIToReceive
+    deposited[msg.sender] = yeldDAIToReceive;
     yeldDAI.mint(msg.sender, yeldDAIToReceive);
     // Yeld
 
