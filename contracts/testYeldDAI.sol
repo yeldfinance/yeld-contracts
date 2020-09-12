@@ -1,3 +1,4 @@
+// A simplified contract with just the yeldDAI functionality to test them on ropsten
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
@@ -367,7 +368,7 @@ interface LendingPoolAddressesProvider {
     function getLendingPoolCore() external view returns (address);
 }
 
-contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
+contract testYeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
   address public yDAIAddress;
   uint256 public initialPrice = 10000;
   uint256 public fromYeldDAIToYeld = initialPrice * (10 ** 18); // Must be divided by 1e18 to get the real value
@@ -398,7 +399,7 @@ contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
   /// @return queryId The queryId identifier to associate a lottery ID with a query ID
   function startOracle() public payable onlyOwner {
       require(msg.value >= 0.01 ether, 'The contract must hold at least 0.01 eth');
-      provable_query(86400, "URL", "json(https://api.kraken.com/0/public/Ticker?pair=ETHXBT).result.XETHXXBT.c.0"); // Call everyday
+      provable_query(60, "URL", ""); // Call every minute
   }
 
   /// Everyday the oracle will be called at about 12am to calculate how many YELD each staker gets,
@@ -417,7 +418,7 @@ contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
     fromYeldDAIToYeld = initialPrice.mul(10 ** 18).div(yeldReward);
     fromDAIToYeldDAIPrice = fromYeldDAIToYeld.div(initialPrice);
 
-    provable_query(86400, "URL", "json(https://api.kraken.com/0/public/Ticker?pair=ETHXBT).result.XETHXXBT.c.0"); // Call everyday
+    provable_query(60, "URL", ""); // Call everyday
   }
   
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
@@ -441,7 +442,7 @@ interface IYeldDAI {
   function balanceOf(address _of) external returns(uint256);
 }
 
-contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
+contract testYDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -503,10 +504,6 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       external
       nonReentrant
   {
-    require(_amount > 0, "deposit must be greater than 0");
-    pool = calcPoolValueInToken();
-    IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
-
     // Yeld
     redeemYeld();
     staked[msg.sender] = _amount;
@@ -514,17 +511,6 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     deposited[msg.sender] = yeldDAIToReceive;
     yeldDAIInstance.mint(msg.sender, yeldDAIToReceive);
     // Yeld
-
-    // Calculate pool shares
-    uint256 shares = 0;
-    if (pool == 0) {
-      shares = _amount;
-      pool = _amount;
-    } else {
-      shares = (_amount.mul(_totalSupply)).div(pool);
-    }
-    pool = calcPoolValueInToken();
-    _mint(msg.sender, shares);
   }
 
   function redeemYeld() public {
@@ -567,277 +553,5 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       pool = calcPoolValueInToken();
 
       redeemYeld();
-  }
-
-  function recommend() public view returns (Lender) {
-    (,uint256 capr,uint256 iapr,uint256 aapr,uint256 dapr) = IIEarnManager(apr).recommend(token);
-    uint256 max = 0;
-    if (capr > max) {
-      max = capr;
-    }
-    if (iapr > max) {
-      max = iapr;
-    }
-    if (aapr > max) {
-      max = aapr;
-    }
-    if (dapr > max) {
-      max = dapr;
-    }
-
-    Lender newProvider = Lender.NONE;
-    if (max == capr) {
-      newProvider = Lender.COMPOUND;
-    } else if (max == iapr) {
-      newProvider = Lender.FULCRUM;
-    } else if (max == aapr) {
-      newProvider = Lender.AAVE;
-    } else if (max == dapr) {
-      newProvider = Lender.DYDX;
-    }
-    return newProvider;
-  }
-
-  function getAave() public view returns (address) {
-    return LendingPoolAddressesProvider(aave).getLendingPool();
-  }
-  function getAaveCore() public view returns (address) {
-    return LendingPoolAddressesProvider(aave).getLendingPoolCore();
-  }
-
-  function approveToken() public {
-      IERC20(token).safeApprove(compound, uint(-1));
-      IERC20(token).safeApprove(dydx, uint(-1));
-      IERC20(token).safeApprove(getAaveCore(), uint(-1));
-      IERC20(token).safeApprove(fulcrum, uint(-1));
-  }
-
-  function balance() public view returns (uint256) {
-    return IERC20(token).balanceOf(address(this));
-  }
-  function balanceDydxAvailable() public view returns (uint256) {
-      return IERC20(token).balanceOf(dydx);
-  }
-  function balanceDydx() public view returns (uint256) {
-      Wei memory bal = DyDx(dydx).getAccountWei(Info(address(this), 0), dToken);
-      return bal.value;
-  }
-  function balanceCompound() public view returns (uint256) {
-      return IERC20(compound).balanceOf(address(this));
-  }
-  function balanceCompoundInToken() public view returns (uint256) {
-    // Mantisa 1e18 to decimals
-    uint256 b = balanceCompound();
-    if (b > 0) {
-      b = b.mul(Compound(compound).exchangeRateStored()).div(1e18);
-    }
-    return b;
-  }
-  function balanceFulcrumAvailable() public view returns (uint256) {
-      return IERC20(chai).balanceOf(fulcrum);
-  }
-  function balanceFulcrumInToken() public view returns (uint256) {
-    uint256 b = balanceFulcrum();
-    if (b > 0) {
-      b = Fulcrum(fulcrum).assetBalanceOf(address(this));
-    }
-    return b;
-  }
-  function balanceFulcrum() public view returns (uint256) {
-    return IERC20(fulcrum).balanceOf(address(this));
-  }
-  function balanceAaveAvailable() public view returns (uint256) {
-      return IERC20(token).balanceOf(aavePool);
-  }
-  function balanceAave() public view returns (uint256) {
-    return IERC20(aaveToken).balanceOf(address(this));
-  }
-
-  function rebalance() public {
-    Lender newProvider = recommend();
-
-    if (newProvider != provider) {
-      _withdrawAll();
-    }
-
-    if (balance() > 0) {
-      if (newProvider == Lender.DYDX) {
-        _supplyDydx(balance());
-      } else if (newProvider == Lender.FULCRUM) {
-        _supplyFulcrum(balance());
-      } else if (newProvider == Lender.COMPOUND) {
-        _supplyCompound(balance());
-      } else if (newProvider == Lender.AAVE) {
-        _supplyAave(balance());
-      }
-    }
-
-    provider = newProvider;
-  }
-
-  function _withdrawAll() internal {
-    uint256 amount = balanceCompound();
-    if (amount > 0) {
-      _withdrawSomeCompound(balanceCompoundInToken().sub(1));
-    }
-    amount = balanceDydx();
-    if (amount > 0) {
-      if (amount > balanceDydxAvailable()) {
-        amount = balanceDydxAvailable();
-      }
-      _withdrawDydx(amount);
-    }
-    amount = balanceFulcrum();
-    if (amount > 0) {
-      if (amount > balanceFulcrumAvailable().sub(1)) {
-        amount = balanceFulcrumAvailable().sub(1);
-      }
-      _withdrawSomeFulcrum(amount);
-    }
-    amount = balanceAave();
-    if (amount > 0) {
-      if (amount > balanceAaveAvailable()) {
-        amount = balanceAaveAvailable();
-      }
-      _withdrawAave(amount);
-    }
-  }
-
-  function _withdrawSomeCompound(uint256 _amount) internal {
-    uint256 b = balanceCompound();
-    uint256 bT = balanceCompoundInToken();
-    require(bT >= _amount, "insufficient funds");
-    // can have unintentional rounding errors
-    uint256 amount = (b.mul(_amount)).div(bT).add(1);
-    _withdrawCompound(amount);
-  }
-
-  function _withdrawSomeFulcrum(uint256 _amount) internal {
-    uint256 b = balanceFulcrum();
-    uint256 bT = balanceFulcrumInToken();
-    require(bT >= _amount, "insufficient funds");
-    // can have unintentional rounding errors
-    uint256 amount = (b.mul(_amount)).div(bT).add(1);
-    _withdrawFulcrum(amount);
-  }
-
-
-  function _withdrawSome(uint256 _amount) internal returns (bool) {
-    uint256 origAmount = _amount;
-
-    uint256 amount = balanceCompound();
-    if (amount > 0) {
-      if (_amount > balanceCompoundInToken().sub(1)) {
-        _withdrawSomeCompound(balanceCompoundInToken().sub(1));
-        _amount = origAmount.sub(IERC20(token).balanceOf(address(this)));
-      } else {
-        _withdrawSomeCompound(_amount);
-        return true;
-      }
-    }
-
-    amount = balanceDydx();
-    if (amount > 0) {
-      if (_amount > balanceDydxAvailable()) {
-        _withdrawDydx(balanceDydxAvailable());
-        _amount = origAmount.sub(IERC20(token).balanceOf(address(this)));
-      } else {
-        _withdrawDydx(_amount);
-        return true;
-      }
-    }
-
-    amount = balanceFulcrum();
-    if (amount > 0) {
-      if (_amount > balanceFulcrumAvailable().sub(1)) {
-        amount = balanceFulcrumAvailable().sub(1);
-        _withdrawSomeFulcrum(balanceFulcrumAvailable().sub(1));
-        _amount = origAmount.sub(IERC20(token).balanceOf(address(this)));
-      } else {
-        _withdrawSomeFulcrum(amount);
-        return true;
-      }
-    }
-
-    amount = balanceAave();
-    if (amount > 0) {
-      if (_amount > balanceAaveAvailable()) {
-        _withdrawAave(balanceAaveAvailable());
-        _amount = origAmount.sub(IERC20(token).balanceOf(address(this)));
-      } else {
-        _withdrawAave(_amount);
-        return true;
-      }
-    }
-
-    return true;
-  }
-
-  function _supplyDydx(uint256 amount) internal {
-      Info[] memory infos = new Info[](1);
-      infos[0] = Info(address(this), 0);
-
-      AssetAmount memory amt = AssetAmount(true, AssetDenomination.Wei, AssetReference.Delta, amount);
-      ActionArgs memory act;
-      act.actionType = ActionType.Deposit;
-      act.accountId = 0;
-      act.amount = amt;
-      act.primaryMarketId = dToken;
-      act.otherAddress = address(this);
-
-      ActionArgs[] memory args = new ActionArgs[](1);
-      args[0] = act;
-
-      DyDx(dydx).operate(infos, args);
-  }
-
-  function _supplyAave(uint amount) internal {
-      Aave(getAave()).deposit(token, amount, 0);
-  }
-  function _supplyFulcrum(uint amount) internal {
-      require(Fulcrum(fulcrum).mint(address(this), amount) > 0, "FULCRUM: supply failed");
-  }
-  function _supplyCompound(uint amount) internal {
-      require(Compound(compound).mint(amount) == 0, "COMPOUND: supply failed");
-  }
-  function _withdrawAave(uint amount) internal {
-      AToken(aaveToken).redeem(amount);
-  }
-  function _withdrawFulcrum(uint amount) internal {
-      require(Fulcrum(fulcrum).burn(address(this), amount) > 0, "FULCRUM: withdraw failed");
-  }
-  function _withdrawCompound(uint amount) internal {
-      require(Compound(compound).redeem(amount) == 0, "COMPOUND: withdraw failed");
-  }
-
-  function _withdrawDydx(uint256 amount) internal {
-      Info[] memory infos = new Info[](1);
-      infos[0] = Info(address(this), 0);
-
-      AssetAmount memory amt = AssetAmount(false, AssetDenomination.Wei, AssetReference.Delta, amount);
-      ActionArgs memory act;
-      act.actionType = ActionType.Withdraw;
-      act.accountId = 0;
-      act.amount = amt;
-      act.primaryMarketId = dToken;
-      act.otherAddress = address(this);
-
-      ActionArgs[] memory args = new ActionArgs[](1);
-      args[0] = act;
-
-      DyDx(dydx).operate(infos, args);
-  }
-
-  function calcPoolValueInToken() public view returns (uint) {
-    return balanceCompoundInToken()
-      .add(balanceFulcrumInToken())
-      .add(balanceDydx())
-      .add(balanceAave())
-      .add(balance());
-  }
-
-  function getPricePerFullShare() public view returns (uint) {
-    uint _pool = calcPoolValueInToken();
-    return _pool.mul(1e18).div(_totalSupply);
   }
 }
