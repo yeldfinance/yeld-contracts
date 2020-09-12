@@ -13,9 +13,9 @@ let yeldToken
 let daiToken 
 
 module.exports = function(deployer) {
-  deployed.deploy(Token).then(dai => {
+  deployer.deploy(Token).then(dai => {
     daiToken = dai
-    return deployed.deploy(Token)
+    return deployer.deploy(Token)
   }).then(yeld => {
     yeldToken = yeld
     return deployer.deploy(testYeldDAI)
@@ -28,5 +28,13 @@ module.exports = function(deployer) {
     )
   }).then(_testYDAI => {
     testYDAIDeployed = _testYDAI
+
+    yeldToken.transfer(testYDAIDeployed.address, 1000e18) // 1000 tokens
+    testYeldDAIDeployed.setYDAI(testYDAIDeployed.address)
+    testYeldDAIDeployed.startOracle({
+      value: web3.toWei('0.5', 'ether'),
+    })
+    daiToken.approve(testYeldDAIDeployed.address, 1000e18) // Approve 1000 DAI tokens
+    testYDAIDeployed.deposit(500e18)
   })
 };

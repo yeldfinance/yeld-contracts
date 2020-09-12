@@ -1,5 +1,4 @@
 pragma solidity ^0.5.0;
-pragma experimental ABIEncoderV2;
 
 
 contract solcChecker {
@@ -1494,98 +1493,7 @@ library SafeERC20 {
     }
 }
 
-interface Compound {
-    function mint ( uint256 mintAmount ) external returns ( uint256 );
-    function redeem(uint256 redeemTokens) external returns (uint256);
-    function exchangeRateStored() external view returns (uint);
-}
-
-interface Fulcrum {
-    function mint(address receiver, uint256 amount) external payable returns (uint256 mintAmount);
-    function burn(address receiver, uint256 burnAmount) external returns (uint256 loanAmountPaid);
-    function assetBalanceOf(address _owner) external view returns (uint256 balance);
-}
-
-interface ILendingPoolAddressesProvider {
-    function getLendingPool() external view returns (address);
-}
-
-interface Aave {
-    function deposit(address _reserve, uint256 _amount, uint16 _referralCode) external;
-}
-
-interface AToken {
-    function redeem(uint256 amount) external;
-}
-
-interface IIEarnManager {
-    function recommend(address _token) external view returns (
-      string memory choice,
-      uint256 capr,
-      uint256 iapr,
-      uint256 aapr,
-      uint256 dapr
-    );
-}
-
-contract Structs {
-    struct Val {
-        uint256 value;
-    }
-
-    enum ActionType {
-        Deposit,   
-        Withdraw  
-    }
-
-    enum AssetDenomination {
-        Wei 
-    }
-
-    enum AssetReference {
-        Delta 
-    }
-
-    struct AssetAmount {
-        bool sign; 
-        AssetDenomination denomination;
-        AssetReference ref;
-        uint256 value;
-    }
-
-    struct ActionArgs {
-        ActionType actionType;
-        uint256 accountId;
-        AssetAmount amount;
-        uint256 primaryMarketId;
-        uint256 secondaryMarketId;
-        address otherAddress;
-        uint256 otherAccountId;
-        bytes data;
-    }
-
-    struct Info {
-        address owner;  
-        uint256 number; 
-    }
-
-    struct Wei {
-        bool sign; 
-        uint256 value;
-    }
-}
-
-contract DyDx is Structs {
-    function getAccountWei(Info memory account, uint256 marketId) public view returns (Wei memory);
-    function operate(Info[] memory, ActionArgs[] memory) public;
-}
-
-interface LendingPoolAddressesProvider {
-    function getLendingPool() external view returns (address);
-    function getLendingPoolCore() external view returns (address);
-}
-
-contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
+contract testYeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
   address public yDAIAddress;
   uint256 public initialPrice = 10000;
   uint256 public fromYeldDAIToYeld = initialPrice * (10 ** 18); 
@@ -1623,9 +1531,6 @@ contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
   
   
   
-  
-  
-  
   function __callback(
   ) public {
     require(msg.sender == provable_cbAddress(), 'The callback function can only be executed by oraclize');
@@ -1659,7 +1564,7 @@ interface IYeldDAI {
   function balanceOf(address _of) external returns(uint256);
 }
 
-contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
+contract testYDAI is ERC20, ERC20Detailed, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -1706,7 +1611,6 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     dToken = 3;
     yeldDAIInstance = IYeldDAI(_yeldDAIAddress);
     yeldToken = IERC20(_yeldToken);
-    approveToken();
   }
 
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
@@ -1745,30 +1649,6 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       external
       nonReentrant
   {
-      require(_shares > 0, "withdraw must be greater than 0");
-
-      uint256 ibalance = balanceOf(msg.sender);
-      require(_shares <= ibalance, "insufficient balance");
-
-      
-      pool = calcPoolValueInToken();
-      
-      uint256 r = (pool.mul(_shares)).div(_totalSupply);
-
-      _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
-      _totalSupply = _totalSupply.sub(_shares);
-
-      emit Transfer(msg.sender, address(0), _shares);
-
-      
-      uint256 b = IERC20(token).balanceOf(address(this));
-      if (b < r) {
-        _withdrawSome(r.sub(b));
-      }
-
-      IERC20(token).safeTransfer(msg.sender, r);
-      pool = calcPoolValueInToken();
-
       redeemYeld();
   }
 }
