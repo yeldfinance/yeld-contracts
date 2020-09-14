@@ -563,6 +563,8 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
         _withdrawSome(r.sub(b));
       }
 
+      // staked[msg.sender]
+
       IERC20(token).safeTransfer(msg.sender, r);
       pool = calcPoolValueInToken();
 

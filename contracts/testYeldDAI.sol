@@ -1,8 +1,6 @@
 // A simplified contract with just the yeldDAI functionality to test them on ropsten
 pragma solidity ^0.5.0;
 
-import './usingProvable.sol';
-
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
@@ -276,20 +274,22 @@ library SafeERC20 {
     }
 }
 
-contract testYeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
+contract testYeldDAI is ERC20, ERC20Detailed, Ownable {
   address public yDAIAddress;
   uint256 public initialPrice = 10000;
   uint256 public fromYeldDAIToYeld = initialPrice * (10 ** 18); // Must be divided by 1e18 to get the real value
   uint256 public fromDAIToYeldDAIPrice = fromYeldDAIToYeld / initialPrice; // Must be divided by 1e18 to get the real value
   uint256 public yeldReward = 1;
   uint256 public yeldDAIDecimals = 18; // The price has 18 decimals meaning you'll have to divide by 1e18 to get the real value
+  uint256 public lastPriceUpdate = now;
+	uint256 public priceUpdatePeriod = 1 days;
   
   modifier onlyYDAI {
     require(msg.sender == yDAIAddress);
     _;
   }
 
-  constructor() public ERC20Detailed("yeld DAI", "yeldDAI", 18) {}
+  constructor() public payable ERC20Detailed("yeld DAI", "yeldDAI", 18) {}
 
   function setYDAI(address _yDAIAddress) public onlyOwner {
     yDAIAddress = _yDAIAddress;
@@ -302,29 +302,28 @@ contract testYeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
   function burn(address _to, uint256 _amount) public onlyYDAI {
     _burn(_to, _amount);
   }
-  
-  /// @notice Starts the process of ending a lottery by executing the function that generates random numbers from oraclize
-  /// @return queryId The queryId identifier to associate a lottery ID with a query ID
-  function startOracle() public payable onlyOwner {
-      require(msg.value >= 0.01 ether, 'The contract must hold at least 0.01 eth');
-      provable_query(60, "URL", ""); // Call every minute
-  }
 
-  /// Everyday the oracle will be called at about 12am to calculate how many YELD each staker gets,
+	/// To change how many tokens the users get. 
+	// Right now it's at 10k which means 1 million DAI staked = 100 yeld a day
+	function changePriceRatio(uint256 _price) public onlyOwner {
+		initialPrice = _price;
+	}
+
+	function checkIfPriceNeedsUpdating() public view returns(bool) {
+		return now >= lastPriceUpdate + priceUpdatePeriod;
+	}
+
+	/// Updates the current price everyday
+	/// Everyday this function will be called to calculate how many YELD each staker gets,
   /// to get half the generated yield by everybody, use it to buy YELD on uniswap and burn it,
   /// and to increase the 1% retirement yield treasury that can be redeemed by holders
-  /// @notice Callback function that gets called by oraclize when the random number is generated
-  function __callback(
-  ) public {
-    require(msg.sender == provable_cbAddress(), 'The callback function can only be executed by oraclize');
-
-    // Update the price
+	function updatePrice() public {
+		require(checkIfPriceNeedsUpdating(), "The price can't be updated yet");
+		// Update the price
     yeldReward++;
-    fromYeldDAIToYeld = initialPrice.mul(10 ** 18).div(yeldReward);
+    fromYeldDAIToYeld = initialPrice.mul(10 ** yeldDAIDecimals).div(yeldReward);
     fromDAIToYeldDAIPrice = fromYeldDAIToYeld.div(initialPrice);
-
-    provable_query(60, "URL", ""); // Call everyday
-  }
+	}
   
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
     IERC20(_token).transfer(msg.sender, _amount);
@@ -344,7 +343,9 @@ interface IYeldDAI {
   function yeldDAIDecimals() external view returns(uint256);
   function mint(address _to, uint256 _amount) external;
   function burn(address _to, uint256 _amount) external;
-  function balanceOf(address _of) external returns(uint256);
+  function balanceOf(address _of) external view returns(uint256);
+	function checkIfPriceNeedsUpdating() external view returns(bool);
+	function updatePrice() external;
 }
 
 contract testYDAI is ERC20, ERC20Detailed, ReentrancyGuard, Ownable {
@@ -409,7 +410,7 @@ contract testYDAI is ERC20, ERC20Detailed, ReentrancyGuard, Ownable {
       nonReentrant
   {
     // Yeld
-    redeemYeld();
+    if (checkIfRedeemableBalance()) redeemYeld();
     staked[msg.sender] = _amount;
     uint256 yeldDAIToReceive = _amount.mul(yeldDAIInstance.fromDAIToYeldDAIPrice()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
     deposited[msg.sender] = yeldDAIToReceive;
@@ -417,10 +418,15 @@ contract testYDAI is ERC20, ERC20Detailed, ReentrancyGuard, Ownable {
     // Yeld
   }
 
-  function redeemYeld() public {
-    uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
-    if (myYeldDAIBalance == 0) return;
+	// Returns true if there's a YELD balance to redeem or false if not
+	function checkIfRedeemableBalance() public view returns(bool) {
+		uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
+    return myYeldDAIBalance != 0;
+	}
 
+  function redeemYeld() public {
+		require(checkIfRedeemableBalance(), "No YELD to redeem yet");
+		uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
     uint256 yeldToRedeem = myYeldDAIBalance.div(yeldDAIInstance.fromYeldDAIToYeld()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
     yeldDAIInstance.burn(msg.sender, deposited[msg.sender]);
     deposited[msg.sender] = 0;
@@ -432,6 +438,6 @@ contract testYDAI is ERC20, ERC20Detailed, ReentrancyGuard, Ownable {
       external
       nonReentrant
   {
-      redeemYeld();
+    if (checkIfRedeemableBalance()) redeemYeld();
   }
 }

@@ -10,9 +10,15 @@ const Token = artifacts.require('Token')
 let testYDAIDeployed
 let testYeldDAIDeployed
 let yeldToken
-let daiToken 
+let daiToken
 
-module.exports = function(deployer) {
+const asyncTimeout = time => {
+  return new Promise(resolve => {
+    setTimeout(resolve, time)
+  })
+}
+
+module.exports = function(deployer, accounts) {
   deployer.deploy(Token).then(dai => {
     daiToken = dai
     return deployer.deploy(Token)
@@ -26,15 +32,29 @@ module.exports = function(deployer) {
       yeldToken.address,
       _testYeldDAI.address,
     )
-  }).then(_testYDAI => {
+  }).then(async _testYDAI => {
     testYDAIDeployed = _testYDAI
 
-    yeldToken.transfer(testYDAIDeployed.address, 1000e18) // 1000 tokens
-    testYeldDAIDeployed.setYDAI(testYDAIDeployed.address)
-    testYeldDAIDeployed.startOracle({
-      value: web3.toWei('0.5', 'ether'),
-    })
-    daiToken.approve(testYeldDAIDeployed.address, 1000e18) // Approve 1000 DAI tokens
-    testYDAIDeployed.deposit(500e18)
+    const balance = await web3.eth.getBalance("0x407d73d8a49eeb85d32cf465507dd71d507100c1")
+    console.log('yeldDAI eth balance:', balance)
+
+    await yeldToken.transfer(testYDAIDeployed.address, String(web3.utils.toWei('1000', 'ether'))) // 1000 tokens
+    await testYeldDAIDeployed.setYDAI(testYDAIDeployed.address)
+    const priceBeforeUpdate = String(await testYeldDAIDeployed.yeldReward())
+    console.log('Price before update:', priceBeforeUpdate)
+    console.log('Waiting 5 seconds to update the price...')
+    await asyncTimeout(5e3)
+    console.log('Updating price...')
+    await testYeldDAIDeployed.updatePrice()
+    const priceAfterUpdate = String(await testYeldDAIDeployed.yeldReward())
+    console.log('Price after update:', priceAfterUpdate)
+    console.log('Approving 1000 DAI tokens...')
+    await daiToken.approve(testYeldDAIDeployed.address, String(web3.utils.toWei('1000', 'ether'))) // Approve 10 DAI tokens
+    console.log('Depositing 1000 DAI tokens...')
+    const yeldDAITokensBeforeDeposit = String(await testYeldDAIDeployed.balance(accounts[0]))
+    console.log('yeldDAI tokens before deposit:', yeldDAITokensAfterDeposit)
+    await testYDAIDeployed.deposit(String(web3.utils.toWei('1000', 'ether')))
+    const yeldDAITokensAfterDeposit = String(await testYeldDAIDeployed.balance(accounts[0]))
+    console.log('yeldDAI tokens after deposit:', yeldDAITokensAfterDeposit)
   })
 };
