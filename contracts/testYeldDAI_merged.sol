@@ -282,7 +282,8 @@ contract testYeldDAI is ERC20, ERC20Detailed, Ownable {
   uint256 public yeldReward = 1;
   uint256 public yeldDAIDecimals = 18; 
   uint256 public lastPriceUpdate = now;
-	uint256 public priceUpdatePeriod = 1 days;
+	
+	uint256 public priceUpdatePeriod = 1 seconds;
   
   modifier onlyYDAI {
     require(msg.sender == yDAIAddress);

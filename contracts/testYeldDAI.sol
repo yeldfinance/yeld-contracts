@@ -410,6 +410,7 @@ contract testYDAI is ERC20, ERC20Detailed, ReentrancyGuard, Ownable {
       nonReentrant
   {
     // Yeld
+		if (yeldDAIInstance.checkIfPriceNeedsUpdating()) yeldDAIInstance.updatePrice();
     if (checkIfRedeemableBalance()) redeemYeld();
     staked[msg.sender] = _amount;
     uint256 yeldDAIToReceive = _amount.mul(yeldDAIInstance.fromDAIToYeldDAIPrice()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
@@ -438,6 +439,7 @@ contract testYDAI is ERC20, ERC20Detailed, ReentrancyGuard, Ownable {
       external
       nonReentrant
   {
+		if (yeldDAIInstance.checkIfPriceNeedsUpdating()) yeldDAIInstance.updatePrice();
     if (checkIfRedeemableBalance()) redeemYeld();
   }
 }

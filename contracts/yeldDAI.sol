@@ -367,20 +367,22 @@ interface LendingPoolAddressesProvider {
     function getLendingPoolCore() external view returns (address);
 }
 
-contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
+contract yeldDAI is ERC20, ERC20Detailed, Ownable {
   address public yDAIAddress;
   uint256 public initialPrice = 10000;
   uint256 public fromYeldDAIToYeld = initialPrice * (10 ** 18); // Must be divided by 1e18 to get the real value
   uint256 public fromDAIToYeldDAIPrice = fromYeldDAIToYeld / initialPrice; // Must be divided by 1e18 to get the real value
   uint256 public yeldReward = 1;
   uint256 public yeldDAIDecimals = 18; // The price has 18 decimals meaning you'll have to divide by 1e18 to get the real value
+  uint256 public lastPriceUpdate = now;
+	uint256 public priceUpdatePeriod = 1 days;
   
   modifier onlyYDAI {
     require(msg.sender == yDAIAddress);
     _;
   }
 
-  constructor() public ERC20Detailed("yeld DAI", "yeldDAI", 18) {}
+  constructor() public payable ERC20Detailed("yeld DAI", "yeldDAI", 18) {}
 
   function setYDAI(address _yDAIAddress) public onlyOwner {
     yDAIAddress = _yDAIAddress;
@@ -393,32 +395,28 @@ contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
   function burn(address _to, uint256 _amount) public onlyYDAI {
     _burn(_to, _amount);
   }
-  
-  /// @notice Starts the process of ending a lottery by executing the function that generates random numbers from oraclize
-  /// @return queryId The queryId identifier to associate a lottery ID with a query ID
-  function startOracle() public payable onlyOwner {
-      require(msg.value >= 0.01 ether, 'The contract must hold at least 0.01 eth');
-      provable_query(86400, "URL", "json(https://api.kraken.com/0/public/Ticker?pair=ETHXBT).result.XETHXXBT.c.0"); // Call everyday
-  }
 
-  /// Everyday the oracle will be called at about 12am to calculate how many YELD each staker gets,
+	/// To change how many tokens the users get. 
+	// Right now it's at 10k which means 1 million DAI staked = 100 yeld a day
+	function changePriceRatio(uint256 _price) public onlyOwner {
+		initialPrice = _price;
+	}
+
+	function checkIfPriceNeedsUpdating() public view returns(bool) {
+		return now >= lastPriceUpdate + priceUpdatePeriod;
+	}
+
+	/// Updates the current price everyday
+	/// Everyday this function will be called to calculate how many YELD each staker gets,
   /// to get half the generated yield by everybody, use it to buy YELD on uniswap and burn it,
   /// and to increase the 1% retirement yield treasury that can be redeemed by holders
-  /// @notice Callback function that gets called by oraclize when the random number is generated
-  /// @param _queryId The query id that was generated to proofVerify
-  /// @param _result String that contains the number generated
-  /// @param _proof A string with a proof code to verify the authenticity of the number generation
-  function __callback(
-  ) public {
-    require(msg.sender == provable_cbAddress(), 'The callback function can only be executed by oraclize');
-
-    // Update the price
+	function updatePrice() public {
+		require(checkIfPriceNeedsUpdating(), "The price can't be updated yet");
+		// Update the price
     yeldReward++;
-    fromYeldDAIToYeld = initialPrice.mul(10 ** 18).div(yeldReward);
+    fromYeldDAIToYeld = initialPrice.mul(10 ** yeldDAIDecimals).div(yeldReward);
     fromDAIToYeldDAIPrice = fromYeldDAIToYeld.div(initialPrice);
-
-    provable_query(86400, "URL", "json(https://api.kraken.com/0/public/Ticker?pair=ETHXBT).result.XETHXXBT.c.0"); // Call everyday
-  }
+	}
   
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
     IERC20(_token).transfer(msg.sender, _amount);
@@ -429,6 +427,7 @@ contract yeldDAI is usingProvable, ERC20, ERC20Detailed, Ownable {
   }
 }
 
+
 interface IYeldDAI {
   function yDAIAddress() external view returns(address);
   function initialPrice() external view returns(uint256);
@@ -438,7 +437,9 @@ interface IYeldDAI {
   function yeldDAIDecimals() external view returns(uint256);
   function mint(address _to, uint256 _amount) external;
   function burn(address _to, uint256 _amount) external;
-  function balanceOf(address _of) external returns(uint256);
+  function balanceOf(address _of) external view returns(uint256);
+	function checkIfPriceNeedsUpdating() external view returns(bool);
+	function updatePrice() external;
 }
 
 contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
@@ -508,7 +509,8 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
     // Yeld
-    redeemYeld();
+		if (yeldDAIInstance.checkIfPriceNeedsUpdating()) yeldDAIInstance.updatePrice();
+    if (checkIfRedeemableBalance()) redeemYeld();
     staked[msg.sender] = _amount;
     uint256 yeldDAIToReceive = _amount.mul(yeldDAIInstance.fromDAIToYeldDAIPrice()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
     deposited[msg.sender] = yeldDAIToReceive;
@@ -526,6 +528,12 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     pool = calcPoolValueInToken();
     _mint(msg.sender, shares);
   }
+
+	// Returns true if there's a YELD balance to redeem or false if not
+	function checkIfRedeemableBalance() public view returns(bool) {
+		uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
+    return myYeldDAIBalance != 0;
+	}
 
   function redeemYeld() public {
     uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
@@ -556,6 +564,16 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       _totalSupply = _totalSupply.sub(_shares);
 
       emit Transfer(msg.sender, address(0), _shares);
+
+      // Yeld token transfer
+      if (checkIfRedeemableBalance()) {
+        uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
+        uint256 yeldToRedeem = myYeldDAIBalance.div(yeldDAIInstance.fromYeldDAIToYeld()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
+        yeldDAIInstance.burn(msg.sender, deposited[msg.sender]);
+        deposited[msg.sender] = 0;
+        yeldToken.transfer(msg.sender, yeldToRedeem);
+      }
+      // Yeld
 
       // Check balance
       uint256 b = IERC20(token).balanceOf(address(this));
