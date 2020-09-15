@@ -1,8 +1,6 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import './usingProvable.sol';
-
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
@@ -397,7 +395,7 @@ contract yeldDAI is ERC20, ERC20Detailed, Ownable {
   }
 
 	/// To change how many tokens the users get. 
-	// Right now it's at 10k which means 1 million DAI staked = 100 yeld a day
+	/// Right now it's at 10k which means 1 million DAI staked = 100 yeld a day
 	function changePriceRatio(uint256 _price) public onlyOwner {
 		initialPrice = _price;
 	}
@@ -490,7 +488,8 @@ contract RetirementYeldTreasury is Ownable {
     require(now >= snapshots[msg.sender].timestamp + timeBetweenRedeems, 'You must wait at least a day after the snapshot to redeem your earnings');
     require(yeld.balanceOf(msg.sender) >= snapshots[msg.sender].yeldBalance, 'Your balance must be equal or higher the snapshoted balance');
     // Calculate his holdings % in 1 per 10^18% instead of 1 per 100%
-    uint256 userPercentage = yeld.balanceOf(msg.sender).mul(1e18).div(yeld.totalSupply());
+    uint256 burnedTokens = yeld.balanceOf(address(0));
+    uint256 userPercentage = yeld.balanceOf(msg.sender).mul(1e18).div(yeld.totalSupply().sub(burnedTokens));
     uint256 earnings = address(this).balance.mul(userPercentage).div(1e16);
     snapshots[msg.sender] = Snapshot(now, yeld.balanceOf(msg.sender));
     msg.sender.transfer(earnings);
@@ -633,14 +632,13 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       return amounts[1];
   }
 
-  // Buys YELD tokens on Uniswap and burns them paying in ETH
-  function buyNBurn() internal {
-    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts);
-
+  // Buys YELD tokens paying in ETH on Uniswap and burns them
+  function buyNBurn(uint256 _ethToSwap) internal {
     address[] memory path = new address[](2);
     path[0] = weth;
     path[1] = yeldToken;
-    uint[] memory amounts = Uniswap(uniswapRouter).swapExactTokensForETH(_amount, uint(0), path, address(this), now.add(1800));
+    // Burns the tokens by taking them out of circulation by sending them to the 0x0 address
+    uint[] memory amounts = Uniswap(uniswapRouter).swapExactETHForTokens.value(_ethToSwap)(uint(0), path, address(0), now.add(1800));
     return amounts[1];
   }
 
@@ -678,9 +676,9 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       uint256 halfProfits = r.sub(staked[msg.sender]).div(2);
       daiToETH(halfProfits);
 
-
       // 98% is the 49% doubled since we already took the 50%
-      uint256 buyNBurn = amounts[1].mul(98).div(100);
+      uint256 ethToSwap = amounts[1].mul(98).div(100);
+      buyNBurn(ethToSwap);
 
       // 1% for the Retirement Yield
       uint256 retirementYeld = amounts[1].mul(2).div(100);
