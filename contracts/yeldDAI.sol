@@ -470,7 +470,7 @@ contract RetirementYeldTreasury is Ownable {
   }
 
   // Fallback function to receive payments
-  function () public payable {}
+  function () external payable {}
 
   // To set the YELD contract address
   constructor (address _yeld) public {
@@ -495,7 +495,7 @@ contract RetirementYeldTreasury is Ownable {
     msg.sender.transfer(earnings);
   }
 
-  function setYeld(address _eld) public onlyOwner {
+  function setYeld(address _yeld) public onlyOwner {
     yeld = IERC20(_yeld);
   }
 
@@ -522,10 +522,9 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   address public chai;
   // Add other tokens if implemented for another stablecoin
   address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-  address public dai = 0x6b175474e89094c44da98b954eedeac495271d0f;
+  address public dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-  address oybkuc retirementYeldTreasury;
-
+  address payable public retirementYeldTreasury;
   IYeldDAI public yeldDAIInstance;
   IERC20 public yeldToken;
 
@@ -543,7 +542,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
   Lender public provider = Lender.NONE;
 
-  constructor (address _yeldToken, address _yeldDAIAddress, address _retirementYeldTreasury) public payable ERC20Detailed("yearn DAI", "yDAI", 18) {
+  constructor (address _yeldToken, address _yeldDAIAddress, address payable _retirementYeldTreasury) public payable ERC20Detailed("yearn DAI", "yDAI", 18) {
     token = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
@@ -561,7 +560,12 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   }
 
   // To receive ETH after converting it from DAI
-  function () public payable {}
+  function () external payable {}
+
+  // In case a new uniswap router version is released
+  function setUniswapRouter(address _uniswapRouter) public onlyOwner {
+    uniswapRouter = _uniswapRouter;
+  }
 
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
     IERC20(_token).transfer(msg.sender, _amount);
@@ -632,12 +636,13 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       return amounts[1];
   }
 
-  // Buys YELD tokens paying in ETH on Uniswap and burns them
-  function buyNBurn(uint256 _ethToSwap) internal {
+  // Buys YELD tokens paying in ETH on Uniswap and removes them from circulation
+  // Returns how many YELD tokens have been burned
+  function buyNBurn(uint256 _ethToSwap) internal returns(uint256) {
     address[] memory path = new address[](2);
     path[0] = weth;
-    path[1] = yeldToken;
-    // Burns the tokens by taking them out of circulation by sending them to the 0x0 address
+    path[1] = address(yeldToken);
+    // Burns the tokens by taking them out of circulation, sending them to the 0x0 address
     uint[] memory amounts = Uniswap(uniswapRouter).swapExactETHForTokens.value(_ethToSwap)(uint(0), path, address(0), now.add(1800));
     return amounts[1];
   }
@@ -648,21 +653,13 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       nonReentrant
   {
       require(_shares > 0, "withdraw must be greater than 0");
-
       uint256 ibalance = balanceOf(msg.sender);
       require(_shares <= ibalance, "insufficient balance");
-
-      // Could have over value from cTokens
       pool = calcPoolValueInToken();
-      // Calc to redeem before updating balances
       uint256 r = (pool.mul(_shares)).div(_totalSupply);
-
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
       _totalSupply = _totalSupply.sub(_shares);
-
       emit Transfer(msg.sender, address(0), _shares);
-
-      // Check balance
       uint256 b = IERC20(token).balanceOf(address(this));
       if (b < r) {
         _withdrawSome(r.sub(b));
@@ -673,20 +670,18 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       if (checkIfRedeemableBalance()) redeemYeld();
       // Take a portion of the profits for the buy and burn and retirement yeld
       // Convert half the DAI earned into ETH for the protocol algorithms
-      uint256 halfProfits = r.sub(staked[msg.sender]).div(2);
-      daiToETH(halfProfits);
+      uint256 halfProfits = (r.sub(staked[msg.sender])).div(2);
+      uint256 stakingProfits = daiToETH(halfProfits);
 
       // 98% is the 49% doubled since we already took the 50%
-      uint256 ethToSwap = amounts[1].mul(98).div(100);
+      uint256 ethToSwap = stakingProfits.mul(98).div(100);
       buyNBurn(ethToSwap);
 
       // 1% for the Retirement Yield
-      uint256 retirementYeld = amounts[1].mul(2).div(100);
-      // Send the to the treasury
+      uint256 retirementYeld = stakingProfits.mul(2).div(100);
+      // Send to the treasury
       retirementYeldTreasury.transfer(retirementYeld);
       // Yeld
-
-
 
       IERC20(token).safeTransfer(msg.sender, r);
       pool = calcPoolValueInToken();
