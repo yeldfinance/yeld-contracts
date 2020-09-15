@@ -588,7 +588,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     // When you stake the timestamp is resetted
     staked[msg.sender] = staked[msg.sender].add(_amount);
     uint256 yeldDAIToReceive = _amount.mul(yeldDAIInstance.fromDAIToYeldDAIPrice()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
-    deposited[msg.sender] = deposited[msg.sender].add(yeldDAIToReceive));
+    deposited[msg.sender] = deposited[msg.sender].add(yeldDAIToReceive);
     yeldDAIInstance.mint(msg.sender, yeldDAIToReceive);
     // Yeld
 
