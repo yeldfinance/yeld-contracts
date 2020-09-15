@@ -464,11 +464,6 @@ contract RetirementYeldTreasury is Ownable {
 
   mapping(address => Snapshot) public snapshots;
 
-  modifier onlyYDAI {
-    require(msg.sender == address(yeld));
-    _;
-  }
-
   // Fallback function to receive payments
   function () external payable {}
 
@@ -527,7 +522,11 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   address payable public retirementYeldTreasury;
   IYeldDAI public yeldDAIInstance;
   IERC20 public yeldToken;
+  uint256 public maximumTokensToBurn = 50000 * 1e18;
 
+  // When you stake say 1000 DAI for a day that will be your maximum
+  // if you stake the next time 300 DAI your maximum will stay the same
+  // if you stake 2000 at once it will increase to 2000 DAI
   mapping(address => uint256) public staked; // How much DAI you have staked
   mapping(address => uint256) public deposited; // How much yeldDAI you've earned
   mapping(bytes32 => uint256) public numberOfParticipants;
@@ -586,9 +585,10 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     // Yeld
 		if (yeldDAIInstance.checkIfPriceNeedsUpdating()) yeldDAIInstance.updatePrice();
     if (checkIfRedeemableBalance()) redeemYeld();
-    staked[msg.sender] = _amount;
+    // When you stake the timestamp is resetted
+    staked[msg.sender] = staked[msg.sender].add(_amount);
     uint256 yeldDAIToReceive = _amount.mul(yeldDAIInstance.fromDAIToYeldDAIPrice()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
-    deposited[msg.sender] = yeldDAIToReceive;
+    deposited[msg.sender] = deposited[msg.sender].add(yeldDAIToReceive));
     yeldDAIInstance.mint(msg.sender, yeldDAIToReceive);
     // Yeld
 
@@ -673,14 +673,22 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       uint256 halfProfits = (r.sub(staked[msg.sender])).div(2);
       uint256 stakingProfits = daiToETH(halfProfits);
 
-      // 98% is the 49% doubled since we already took the 50%
-      uint256 ethToSwap = stakingProfits.mul(98).div(100);
-      buyNBurn(ethToSwap);
-
-      // 1% for the Retirement Yield
-      uint256 retirementYeld = stakingProfits.mul(2).div(100);
-      // Send to the treasury
-      retirementYeldTreasury.transfer(retirementYeld);
+      uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
+      if (tokensAlreadyBurned < maximumTokensToBurn) {
+        // 98% is the 49% doubled since we already took the 50%
+        uint256 ethToSwap = stakingProfits.mul(98).div(100);
+        // Buy and burn only applies up to 50k tokens burned
+        buyNBurn(ethToSwap);
+        // 1% for the Retirement Yield
+        uint256 retirementYeld = stakingProfits.mul(2).div(100);
+        // Send to the treasury
+        retirementYeldTreasury.transfer(retirementYeld);
+      } else {
+        // If we've reached the maximum burn point, send half the profits to the treasury to reward holders
+        uint256 retirementYeld = stakingProfits;
+        // Send to the treasury
+        retirementYeldTreasury.transfer(retirementYeld);
+      }
       // Yeld
 
       IERC20(token).safeTransfer(msg.sender, r);
