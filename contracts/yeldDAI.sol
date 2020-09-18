@@ -245,7 +245,8 @@ contract yeldDAI is ERC20, ERC20Detailed, Ownable {
 	function updatePrice() public {
 		require(checkIfPriceNeedsUpdating(), "The price can't be updated yet");
 		// Update the price
-		yeldReward++;
+        uint256 daysPassed = (now - lastPriceUpdate) / 1 days;
+		yeldReward = daysPassed;
 		lastPriceUpdate = now;
 		fromYeldDAIToYeld = initialPrice.mul(10 ** yeldDAIDecimals).div(yeldReward);
 		fromDAIToYeldDAIPrice = fromYeldDAIToYeld.div(initialPrice);

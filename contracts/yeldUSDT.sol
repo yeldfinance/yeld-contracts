@@ -245,10 +245,11 @@ contract yeldUSDT is ERC20, ERC20Detailed, Ownable {
 	function updatePrice() public {
 		require(checkIfPriceNeedsUpdating(), "The price can't be updated yet");
 		// Update the price
-		yeldReward++;
+        uint256 daysPassed = (now - lastPriceUpdate) / 1 days;
+		yeldReward = daysPassed;
 		lastPriceUpdate = now;
-		fromYeldUSDTToYeld = initialPrice.mul(10 ** yeldUSDTDecimals).div(yeldReward);
-		fromUSDTToYeldUSDTPrice = fromYeldUSDTToYeld.div(initialPrice);
+		fromYeldDAIToYeld = initialPrice.mul(10 ** yeldDAIDecimals).div(yeldReward);
+		fromDAIToYeldDAIPrice = fromYeldDAIToYeld.div(initialPrice);
 	}
   
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
