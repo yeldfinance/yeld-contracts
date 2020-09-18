@@ -456,7 +456,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     if (checkIfRedeemableBalance()) redeemYeld();
     // When you stake the timestamp is resetted
     staked[msg.sender] = staked[msg.sender].add(_amount);
-    uint256 yeldUSDTToReceive = _amount.mul(yeldUSDTInstance.fromUSDTToYeldUSDTPrice()).div(1 ** yeldUSDTInstance.yeldUSDTDecimals());
+    uint256 yeldUSDTToReceive = _amount.mul(yeldUSDTInstance.fromUSDTToYeldUSDTPrice()).div(10 ** yeldUSDTInstance.yeldUSDTDecimals());
     deposited[msg.sender] = deposited[msg.sender].add(yeldUSDTToReceive);
     yeldUSDTInstance.mint(msg.sender, yeldUSDTToReceive);
     // Yeld

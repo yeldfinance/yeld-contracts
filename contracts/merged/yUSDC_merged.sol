@@ -517,7 +517,7 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     if (checkIfRedeemableBalance()) redeemYeld();
     
     staked[msg.sender] = staked[msg.sender].add(_amount);
-    uint256 yeldUSDCToReceive = _amount.mul(yeldUSDCInstance.fromUSDCToYeldUSDCPrice()).div(1 ** yeldUSDCInstance.yeldUSDCDecimals());
+    uint256 yeldUSDCToReceive = _amount.mul(yeldUSDCInstance.fromUSDCToYeldUSDCPrice()).div(10 ** yeldUSDCInstance.yeldUSDCDecimals());
     deposited[msg.sender] = deposited[msg.sender].add(yeldUSDCToReceive);
     yeldUSDCInstance.mint(msg.sender, yeldUSDCToReceive);
     

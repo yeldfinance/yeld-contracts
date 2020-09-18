@@ -517,7 +517,7 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     if (checkIfRedeemableBalance()) redeemYeld();
     
     staked[msg.sender] = staked[msg.sender].add(_amount);
-    uint256 yeldTUSDToReceive = _amount.mul(yeldTUSDInstance.fromTUSDToYeldTUSDPrice()).div(1 ** yeldTUSDInstance.yeldTUSDDecimals());
+    uint256 yeldTUSDToReceive = _amount.mul(yeldTUSDInstance.fromTUSDToYeldTUSDPrice()).div(10 ** yeldTUSDInstance.yeldTUSDDecimals());
     deposited[msg.sender] = deposited[msg.sender].add(yeldTUSDToReceive);
     yeldTUSDInstance.mint(msg.sender, yeldTUSDToReceive);
     
