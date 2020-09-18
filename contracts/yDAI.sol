@@ -1,5 +1,8 @@
 pragma solidity 0.5.17;
+pragma experimental ABIEncoderV2;
 
+import './IUniswap.sol';
+import './IYeldTokens.sol';
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);

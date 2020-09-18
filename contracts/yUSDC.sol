@@ -1,6 +1,8 @@
 pragma solidity 0.5.17;
+pragma experimental ABIEncoderV2;
 
-import 'IYeldTokens';
+import './IUniswap.sol';
+import './IYeldTokens.sol';
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -384,7 +386,7 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   address public chai;
   // Add other tokens if implemented for another stablecoin
   address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-  address public usdc = <<TODO ADD THE usdc ADDRESS HERE>>;
+  address public usdc = 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48;
   address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
   address payable public retirementYeldTreasury;
   IYeldUSDC public yeldUSDCInstance;
