@@ -197,39 +197,39 @@ library SafeMath {
     }
 }
 
-contract yeldDAI is ERC20, ERC20Detailed, Ownable {
+contract yeldUSDT is ERC20, ERC20Detailed, Ownable {
   using SafeMath for uint256;
 
-  address public yDAIAddress;
+  address public yUSDTAddress;
   uint256 public initialPrice = 10000;
-  uint256 public fromYeldDAIToYeld = initialPrice * (10 ** 18); // Must be divided by 1e18 to get the real value
-  uint256 public fromDAIToYeldDAIPrice = fromYeldDAIToYeld / initialPrice; // Must be divided by 1e18 to get the real value
+  uint256 public fromYeldUSDTToYeld = initialPrice * (10 ** 18); // Must be divided by 1e18 to get the real value
+  uint256 public fromUSDTToYeldUSDTPrice = fromYeldUSDTToYeld / initialPrice; // Must be divided by 1e18 to get the real value
   uint256 public yeldReward = 1;
-  uint256 public yeldDAIDecimals = 18; // The price has 18 decimals meaning you'll have to divide by 1e18 to get the real value
+  uint256 public yeldUSDTDecimals = 18; // The price has 18 decimals meaning you'll have to divide by 1e18 to get the real value
   uint256 public lastPriceUpdate = now;
 	uint256 public priceUpdatePeriod = 1 days;
   
-  modifier onlyYDAI {
-    require(msg.sender == yDAIAddress);
+  modifier onlyYUSDT {
+    require(msg.sender == yUSDTAddress);
     _;
   }
 
-  constructor() public payable ERC20Detailed("yeld DAI", "yeldDAI", 18) {}
+  constructor() public payable ERC20Detailed("yeld USDT", "yeldUSDT", 18) {}
 
-  function setYDAI(address _yDAIAddress) public onlyOwner {
-    yDAIAddress = _yDAIAddress;
+  function setYUSDT(address _yUSDTAddress) public onlyOwner {
+    yUSDTAddress = _yUSDTAddress;
   }
   
-  function mint(address _to, uint256 _amount) public onlyYDAI {
+  function mint(address _to, uint256 _amount) public onlyYUSDT {
     _mint(_to, _amount);
   }
 
-  function burn(address _to, uint256 _amount) public onlyYDAI {
+  function burn(address _to, uint256 _amount) public onlyYUSDT {
     _burn(_to, _amount);
   }
 
 	/// To change how many tokens the users get. 
-	/// Right now it's at 10k which means 1 million DAI staked = 100 yeld a day
+	/// Right now it's at 10k which means 1 million USDT staked = 100 yeld a day
 	function changePriceRatio(uint256 _price) public onlyOwner {
 		initialPrice = _price;
 	}
@@ -247,8 +247,8 @@ contract yeldDAI is ERC20, ERC20Detailed, Ownable {
 		// Update the price
 		yeldReward++;
 		lastPriceUpdate = now;
-		fromYeldDAIToYeld = initialPrice.mul(10 ** yeldDAIDecimals).div(yeldReward);
-		fromDAIToYeldDAIPrice = fromYeldDAIToYeld.div(initialPrice);
+		fromYeldUSDTToYeld = initialPrice.mul(10 ** yeldUSDTDecimals).div(yeldReward);
+		fromUSDTToYeldUSDTPrice = fromYeldUSDTToYeld.div(initialPrice);
 	}
   
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
