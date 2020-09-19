@@ -483,7 +483,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     if (yeldDAIInstance.checkIfPriceNeedsUpdating()) yeldDAIInstance.updatePrice();
     if (checkIfRedeemableBalance()) {
       uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
-      uint256 yeldToRedeem = myYeldDAIBalance.div(yeldDAIInstance.fromYeldDAIToYeld()).div(1 ** yeldDAIInstance.yeldDAIDecimals());
+      uint256 yeldToRedeem = myYeldDAIBalance.div(yeldDAIInstance.fromYeldDAIToYeld()).div(10 ** yeldDAIInstance.yeldDAIDecimals());
       yeldDAIInstance.burn(msg.sender, deposited[msg.sender]);
       deposited[msg.sender] = 0;
       yeldToken.transfer(msg.sender, yeldToRedeem);

@@ -483,7 +483,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     if (yeldUSDTInstance.checkIfPriceNeedsUpdating()) yeldUSDTInstance.updatePrice();
     if (checkIfRedeemableBalance()) {
       uint256 myYeldUSDTBalance = yeldUSDTInstance.balanceOf(msg.sender);
-      uint256 yeldToRedeem = myYeldUSDTBalance.div(yeldUSDTInstance.fromYeldUSDTToYeld()).div(1 ** yeldUSDTInstance.yeldUSDTDecimals());
+      uint256 yeldToRedeem = myYeldUSDTBalance.div(yeldUSDTInstance.fromYeldUSDTToYeld()).div(10 ** yeldUSDTInstance.yeldUSDTDecimals());
       yeldUSDTInstance.burn(msg.sender, deposited[msg.sender]);
       deposited[msg.sender] = 0;
       yeldToken.transfer(msg.sender, yeldToRedeem);
