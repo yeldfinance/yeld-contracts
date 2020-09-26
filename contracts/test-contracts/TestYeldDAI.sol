@@ -197,39 +197,39 @@ library SafeMath {
     }
 }
 
-contract yeldUSDC is ERC20, ERC20Detailed, Ownable {
+contract TestYeldDAI is ERC20, ERC20Detailed, Ownable {
   using SafeMath for uint256;
 
-  address public yUSDCAddress;
+  address public yDAIAddress;
   uint256 public initialPrice = 10000;
-  uint256 public fromYeldUSDCToYeld = initialPrice * (10 ** 18); // Must be divided by 1e18 to get the real value
-  uint256 public fromUSDCToYeldUSDCPrice = fromYeldUSDCToYeld / initialPrice; // Must be divided by 1e18 to get the real value
+  uint256 public fromYeldDAIToYeld = initialPrice * (10 ** 18); // Must be divided by 1e18 to get the real value
+  uint256 public fromDAIToYeldDAIPrice = fromYeldDAIToYeld / initialPrice; // Must be divided by 1e18 to get the real value
   uint256 public yeldReward = 1;
-  uint256 public yeldUSDCDecimals = 18; // The price has 18 decimals meaning you'll have to divide by 1e18 to get the real value
+  uint256 public yeldDAIDecimals = 18; // The price has 18 decimals meaning you'll have to divide by 1e18 to get the real value
   uint256 public lastPriceUpdate = now;
-	uint256 public priceUpdatePeriod = 1 days;
+	uint256 public priceUpdatePeriod = 5 minutes; // TODO: change to 1 days since it's the real date
   
-  modifier onlyYUSDC {
-    require(msg.sender == yUSDCAddress);
+  modifier onlyYDAI {
+    require(msg.sender == yDAIAddress);
     _;
   }
 
-  constructor() public payable ERC20Detailed("yeld USDC", "yeldUSDC", 18) {}
+  constructor() public payable ERC20Detailed("Test Yeld DAI", "TestYeldDAI", 18) {}
 
-  function setYUSDC(address _yUSDCAddress) public onlyOwner {
-    yUSDCAddress = _yUSDCAddress;
+  function setYDAI(address _yDAIAddress) public onlyOwner {
+    yDAIAddress = _yDAIAddress;
   }
   
-  function mint(address _to, uint256 _amount) public onlyYUSDC {
+  function mint(address _to, uint256 _amount) public onlyYDAI {
     _mint(_to, _amount);
   }
 
-  function burn(address _to, uint256 _amount) public onlyYUSDC {
+  function burn(address _to, uint256 _amount) public onlyYDAI {
     _burn(_to, _amount);
   }
 
 	/// To change how many tokens the users get. 
-	/// Right now it's at 10k which means 1 million USDC staked = 100 yeld a day
+	/// Right now it's at 10k which means 1 million DAI staked = 100 yeld a day
 	function changePriceRatio(uint256 _price) public onlyOwner {
 		initialPrice = _price;
 	}

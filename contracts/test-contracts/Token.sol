@@ -12,6 +12,51 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
+library SafeMath {
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
+        uint256 c = a + b;
+        require(c >= a, "SafeMath: addition overflow");
+
+        return c;
+    }
+    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+        return sub(a, b, "SafeMath: subtraction overflow");
+    }
+    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        require(b <= a, errorMessage);
+        uint256 c = a - b;
+
+        return c;
+    }
+    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+        if (a == 0) {
+            return 0;
+        }
+
+        uint256 c = a * b;
+        require(c / a == b, "SafeMath: multiplication overflow");
+
+        return c;
+    }
+    function div(uint256 a, uint256 b) internal pure returns (uint256) {
+        return div(a, b, "SafeMath: division by zero");
+    }
+    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        // Solidity only automatically asserts when dividing by 0
+        require(b > 0, errorMessage);
+        uint256 c = a / b;
+
+        return c;
+    }
+    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
+        return mod(a, b, "SafeMath: modulo by zero");
+    }
+    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        require(b != 0, errorMessage);
+        return a % b;
+    }
+}
+
 contract Context {
     constructor () internal { }
     // solhint-disable-previous-line no-empty-blocks
@@ -152,112 +197,8 @@ contract ERC20Detailed is IERC20 {
     }
 }
 
-library SafeMath {
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        // Solidity only automatically asserts when dividing by 0
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-
-        return c;
-    }
-    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        return mod(a, b, "SafeMath: modulo by zero");
-    }
-    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b != 0, errorMessage);
-        return a % b;
+contract Token is ERC20, ERC20Detailed {
+    constructor (string memory _name, string memory _symbol) public ERC20Detailed(_name, _symbol, 18) {
+        _mint(msg.sender, 100e24); // 100 million with 18 decimals
     }
 }
-
-contract yeldUSDC is ERC20, ERC20Detailed, Ownable {
-  using SafeMath for uint256;
-
-  address public yUSDCAddress;
-  uint256 public initialPrice = 10000;
-  uint256 public fromYeldUSDCToYeld = initialPrice * (10 ** 18); // Must be divided by 1e18 to get the real value
-  uint256 public fromUSDCToYeldUSDCPrice = fromYeldUSDCToYeld / initialPrice; // Must be divided by 1e18 to get the real value
-  uint256 public yeldReward = 1;
-  uint256 public yeldUSDCDecimals = 18; // The price has 18 decimals meaning you'll have to divide by 1e18 to get the real value
-  uint256 public lastPriceUpdate = now;
-	uint256 public priceUpdatePeriod = 1 days;
-  
-  modifier onlyYUSDC {
-    require(msg.sender == yUSDCAddress);
-    _;
-  }
-
-  constructor() public payable ERC20Detailed("yeld USDC", "yeldUSDC", 18) {}
-
-  function setYUSDC(address _yUSDCAddress) public onlyOwner {
-    yUSDCAddress = _yUSDCAddress;
-  }
-  
-  function mint(address _to, uint256 _amount) public onlyYUSDC {
-    _mint(_to, _amount);
-  }
-
-  function burn(address _to, uint256 _amount) public onlyYUSDC {
-    _burn(_to, _amount);
-  }
-
-	/// To change how many tokens the users get. 
-	/// Right now it's at 10k which means 1 million USDC staked = 100 yeld a day
-	function changePriceRatio(uint256 _price) public onlyOwner {
-		initialPrice = _price;
-	}
-
-	function checkIfPriceNeedsUpdating() public view returns(bool) {
-		return now >= lastPriceUpdate + priceUpdatePeriod;
-	}
-
-	/// Updates the current price everyday
-	/// Everyday this function will be called to calculate how many YELD each staker gets,
-	/// to get half the generated yield by everybody, use it to buy YELD on uniswap and burn it,
-	/// and to increase the 1% retirement yield treasury that can be redeemed by holders
-	function updatePrice() public {
-		require(checkIfPriceNeedsUpdating(), "The price can't be updated yet");
-		// Update the price
-        uint256 daysPassed = (now - lastPriceUpdate) / 1 days;
-		yeldReward = daysPassed;
-		lastPriceUpdate = now;
-		fromYeldDAIToYeld = initialPrice.mul(10 ** yeldDAIDecimals).div(yeldReward);
-		fromDAIToYeldDAIPrice = fromYeldDAIToYeld.div(initialPrice);
-	}
-  
-  function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
-    IERC20(_token).transfer(msg.sender, _amount);
-  }
-
-  function extractETHIfStuck() public onlyOwner {
-    owner().transfer(address(this).balance);
-  }
-}
-

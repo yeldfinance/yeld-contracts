@@ -132,7 +132,7 @@ contract RetirementYeldTreasury is Ownable {
   /// Checks how much YELD the user currently has and sends him some eth based on that
   function redeemETH() public {
     require(now >= snapshots[msg.sender].timestamp + timeBetweenRedeems, 'You must wait at least a day after the snapshot to redeem your earnings');
-    require(yeld.balanceOf(msg.sender) >= snapshots[msg.sender].yeldBalance, 'Your balance must be equal or higher the snapshoted balance');
+    require(yeld.balanceOf(msg.sender) >= snapshots[msg.sender].yeldBalance, 'Your balance must be equal to or higher the snapshoted balance');
     // Calculate his holdings % in 1 per 10^18% instead of 1 per 100%
     uint256 burnedTokens = yeld.balanceOf(address(0));
     uint256 userPercentage = yeld.balanceOf(msg.sender).mul(1e18).div(yeld.totalSupply().sub(burnedTokens));
