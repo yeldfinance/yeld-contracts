@@ -1,18 +1,23 @@
-pragma solidity 0.5.17;
+pragma solidity 0.6.5;
 
-contract YeldNFT {
+import './CustomERC1155Burnable.sol';
+
+contract YeldNFT is CustomERC1155Burnable {
     struct Deposit {
         uint256 amount;
         uint256 start; // Block when it started
     }
-    
+
     mapping(address => Deposit) public deposits;
     address public yeld;
     address public yeldies;
     uint256 public constant oneDayInBlocks = 4; // TODO: Change to 6500 blocks after testing
+    uint256 private _currentTokenID = 0;
+    mapping (uint256 => address) public creators;
+    mapping (uint256 => uint256) public tokenSupply;
     
     /// The contract will receive the Yeldies YLDS ERC20 token to distribute
-    constructor (address _yeld, address _yeldies) public {
+    constructor (address _yeld, address _yeldies, string memory _uri) public CustomERC1155Burnable(_uri) {
         yeld = _yeld;
         yeldies = _yeldies;
     }
@@ -58,6 +63,52 @@ contract YeldNFT {
         uint256 generatedYeldies = deposits[msg.sender].amount * blocksPassed / oneDayInBlocks;
         return generatedYeldies;
     }
+
+
+    /// ERC1155 specific functions
+
+    /**
+    * @dev calculates the next token ID based on value of _currentTokenID
+    * @return uint256 for the next token ID
+    */
+    function _getNextTokenID() private view returns (uint256) {
+        return _currentTokenID.add(1);
+    }
+
+    /**
+    * @dev increments the value of _currentTokenID
+    */
+    function _incrementTokenTypeId() private  {
+        _currentTokenID++;
+    }
+
+      /**
+    * @dev Creates a new token type and assigns _initialSupply to an address
+    * NOTE: remove onlyOwner if you want third parties to create new tokens on your contract (which may change your IDs)
+    * @param _initialOwner address of the first owner of the token
+    * @param _initialSupply amount to supply the first owner
+    * @param _uri Optional URI for this token type
+    * @param _data Data to pass if receiver is contract
+    * @return The newly created token ID
+    */
+    function create(
+        address _initialOwner,
+        uint256 _initialSupply,
+        string calldata _uri,
+        bytes calldata _data
+    ) external onlyOwner returns (uint256) {
+        uint256 _id = _getNextTokenID();
+        _incrementTokenTypeId();
+        creators[_id] = msg.sender;
+
+        if (bytes(_uri).length > 0) {
+            emit URI(_uri, _id);
+        }
+
+        _mint(_initialOwner, _id, _initialSupply, _data);
+        tokenSupply[_id] = _initialSupply;
+        return _id;
+    }
 }
 
 
@@ -72,7 +123,7 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-contract ERC20Detailed is IERC20 {
+abstract contract ERC20Detailed is IERC20 {
     string private _name;
     string private _symbol;
     uint8 private _decimals;
@@ -90,20 +141,6 @@ contract ERC20Detailed is IERC20 {
     }
     function decimals() public view returns (uint8) {
         return _decimals;
-    }
-}
-
-contract Context {
-    constructor () internal { }
-    // solhint-disable-previous-line no-empty-blocks
-
-    function _msgSender() internal view returns (address payable) {
-        return msg.sender;
-    }
-
-    function _msgData() internal view returns (bytes memory) {
-        this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
-        return msg.data;
     }
 }
 
@@ -147,24 +184,24 @@ contract ERC20 is Context, IERC20 {
     mapping (address => mapping (address => uint256)) private _allowances;
 
     uint256 _totalSupply;
-    function totalSupply() public view returns (uint256) {
+    function totalSupply() public view override returns (uint256) {
         return _totalSupply;
     }
-    function balanceOf(address account) public view returns (uint256) {
+    function balanceOf(address account) public view override returns (uint256) {
         return _balances[account];
     }
-    function transfer(address recipient, uint256 amount) public returns (bool) {
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
-    function allowance(address owner, address spender) public view returns (uint256) {
+    function allowance(address owner, address spender) public view override returns (uint256) {
         return _allowances[owner][spender];
     }
-    function approve(address spender, uint256 amount) public returns (bool) {
+    function approve(address spender, uint256 amount) public override returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
-    function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
         return true;
@@ -209,56 +246,5 @@ contract ERC20 is Context, IERC20 {
     function _burnFrom(address account, uint256 amount) internal {
         _burn(account, amount);
         _approve(account, _msgSender(), _allowances[account][_msgSender()].sub(amount, "ERC20: burn amount exceeds allowance"));
-    }
-}
-
-contract TestYELD is ERC20, ERC20Detailed {
-    constructor (string memory _name, string memory _symbol) public ERC20Detailed(_name, _symbol, 18) {
-        _mint(msg.sender, 100e24); // 100 million with 18 decimals
-    }
-}
-
-library SafeMath {
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        // Solidity only automatically asserts when dividing by 0
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-
-        return c;
-    }
-    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        return mod(a, b, "SafeMath: modulo by zero");
-    }
-    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b != 0, errorMessage);
-        return a % b;
     }
 }
