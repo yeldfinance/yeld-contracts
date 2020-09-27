@@ -1194,10 +1194,10 @@ contract ERC1155Tradable is ERC1155, ERC1155MintBurn, ERC1155Metadata, Ownable, 
  */
 contract Yeldies is ERC1155Tradable {
 	constructor(address _proxyRegistryAddress) public ERC1155Tradable("Yeldies", "YLDS", _proxyRegistryAddress) {
-		_setBaseMetadataURI("https://api.dontbuymeme.com/memes/");
+		_setBaseMetadataURI("https://yeld.finance.finance/yeldies/items/");
 	}
 
 	function contractURI() public view returns (string memory) {
-		return "https://api.dontbuymeme.com/contract/memes-erc1155";
+		return "https://yeld.finance/yeldies/contract/erc1155";
 	}
 }
