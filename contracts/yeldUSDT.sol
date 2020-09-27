@@ -248,8 +248,8 @@ contract yeldUSDT is ERC20, ERC20Detailed, Ownable {
         uint256 daysPassed = (now - lastPriceUpdate) / 1 days;
 		yeldReward = daysPassed;
 		lastPriceUpdate = now;
-		fromYeldDAIToYeld = initialPrice.mul(10 ** yeldDAIDecimals).div(yeldReward);
-		fromDAIToYeldDAIPrice = fromYeldDAIToYeld.div(initialPrice);
+		fromYeldUSDTToYeld = initialPrice.mul(10 ** yeldUSDTDecimals).div(yeldReward);
+		fromUSDTToYeldUSDTPrice = fromYeldUSDTToYeld.div(initialPrice);
 	}
   
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {

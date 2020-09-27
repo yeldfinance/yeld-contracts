@@ -2,7 +2,7 @@
  *Submitted for verification at Etherscan.io on 2020-08-26
 */
 
-pragma solidity >=0.5.0;
+pragma solidity =0.5.17;
 
 
 /*
@@ -1183,23 +1183,5 @@ contract ERC1155Tradable is ERC1155, ERC1155MintBurn, ERC1155Metadata, Ownable, 
 	 */
 	function _incrementTokenTypeId() private {
 		_currentTokenID++;
-	}
-}
-
-/**
- * @title Yeldies By YELD Finance
- * Rinkeby:
- * proxyRegistryAddress = "0xf57b2c51ded3a29e6891aba85459d600256cf317";
- * 
- * Mainnet:
- * proxyRegistryAddress = "0xa5409ec958c83c3f309868babaca7c86dcb077c1";
- */
-contract Yeldies is ERC1155Tradable {
-	constructor(address _proxyRegistryAddress) public ERC1155Tradable("Yeldies", "YLDS", _proxyRegistryAddress) {
-		_setBaseMetadataURI("https://api.yeld.finance/items/");
-	}
-
-	function contractURI() public view returns (string memory) {
-		return "https://api.yeld.finance/contract/erc1155";
 	}
 }

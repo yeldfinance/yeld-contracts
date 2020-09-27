@@ -1,8 +1,10 @@
-pragma solidity 0.6.5;
+pragma solidity =0.5.17;
 
-import './CustomERC1155Burnable.sol';
+import './Yeldies.sol';
 
-contract YeldNFT is CustomERC1155Burnable {
+contract YeldNFT {
+    using SafeMath for uint256;
+
     struct Deposit {
         uint256 amount;
         uint256 start; // Block when it started
@@ -11,13 +13,10 @@ contract YeldNFT is CustomERC1155Burnable {
     mapping(address => Deposit) public deposits;
     address public yeld;
     address public yeldies;
-    uint256 public constant oneDayInBlocks = 4; // TODO: Change to 6500 blocks after testing
-    uint256 private _currentTokenID = 0;
-    mapping (uint256 => address) public creators;
-    mapping (uint256 => uint256) public tokenSupply;
+    uint256 public constant oneDayInBlocks = 6500;
     
     /// The contract will receive the Yeldies YLDS ERC20 token to distribute
-    constructor (address _yeld, address _yeldies, string memory _uri) public CustomERC1155Burnable(_uri) {
+    constructor (address _yeld, address _yeldies) public {
         yeld = _yeld;
         yeldies = _yeldies;
     }
@@ -40,16 +39,22 @@ contract YeldNFT is CustomERC1155Burnable {
         
         IERC20(yeldies).transfer(msg.sender, generatedYeldies);
     }
-    
-    /// Withdraws all
-    function withdraw() public {
+
+    /// Withdraw
+    function withdraw(uint256 _amount) public {
         require(deposits[msg.sender].start > 0 && deposits[msg.sender].amount > 0, 'Must have deposited YELD beforehand');
+        require(_amount <= deposits[msg.sender].amount, "You can't withdraw more than the deposited balance");
         uint256 generatedYeldies = getGeneratedYeldies();
-        uint256 yeldToSend = deposits[msg.sender].amount;
-        deposits[msg.sender] = Deposit(0, 0);
+        uint256 yeldToSend = _amount;
+        deposits[msg.sender] = Deposit(deposits[msg.sender].amount.sub(_amount), block.number);
         
         IERC20(yeldies).transfer(msg.sender, generatedYeldies);
         IERC20(yeld).transfer(msg.sender, yeldToSend);
+    }
+    
+    /// Withdraws all
+    function withdrawAll() public {
+        withdraw(deposits[msg.sender].amount);
     }
     
     function getGeneratedYeldies() public view returns(uint256) {
@@ -62,52 +67,6 @@ contract YeldNFT is CustomERC1155Burnable {
         // This will work because amount is a token with 18 decimals
         uint256 generatedYeldies = deposits[msg.sender].amount * blocksPassed / oneDayInBlocks;
         return generatedYeldies;
-    }
-
-
-    /// ERC1155 specific functions
-
-    /**
-    * @dev calculates the next token ID based on value of _currentTokenID
-    * @return uint256 for the next token ID
-    */
-    function _getNextTokenID() private view returns (uint256) {
-        return _currentTokenID.add(1);
-    }
-
-    /**
-    * @dev increments the value of _currentTokenID
-    */
-    function _incrementTokenTypeId() private  {
-        _currentTokenID++;
-    }
-
-      /**
-    * @dev Creates a new token type and assigns _initialSupply to an address
-    * NOTE: remove onlyOwner if you want third parties to create new tokens on your contract (which may change your IDs)
-    * @param _initialOwner address of the first owner of the token
-    * @param _initialSupply amount to supply the first owner
-    * @param _uri Optional URI for this token type
-    * @param _data Data to pass if receiver is contract
-    * @return The newly created token ID
-    */
-    function create(
-        address _initialOwner,
-        uint256 _initialSupply,
-        string calldata _uri,
-        bytes calldata _data
-    ) external onlyOwner returns (uint256) {
-        uint256 _id = _getNextTokenID();
-        _incrementTokenTypeId();
-        creators[_id] = msg.sender;
-
-        if (bytes(_uri).length > 0) {
-            emit URI(_uri, _id);
-        }
-
-        _mint(_initialOwner, _id, _initialSupply, _data);
-        tokenSupply[_id] = _initialSupply;
-        return _id;
     }
 }
 
@@ -123,7 +82,8 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-abstract contract ERC20Detailed is IERC20 {
+
+contract ERC20Detailed is IERC20 {
     string private _name;
     string private _symbol;
     uint8 private _decimals;
@@ -144,37 +104,6 @@ abstract contract ERC20Detailed is IERC20 {
     }
 }
 
-contract Ownable is Context {
-    address payable private _owner;
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-    constructor () internal {
-        _owner = _msgSender();
-        emit OwnershipTransferred(address(0), _owner);
-    }
-    function owner() public view returns (address payable) {
-        return _owner;
-    }
-    modifier onlyOwner() {
-        require(isOwner(), "Ownable: caller is not the owner");
-        _;
-    }
-    function isOwner() public view returns (bool) {
-        return _msgSender() == _owner;
-    }
-    function renounceOwnership() public onlyOwner {
-        emit OwnershipTransferred(_owner, address(0));
-        _owner = address(0);
-    }
-    function transferOwnership(address payable newOwner) public onlyOwner {
-        _transferOwnership(newOwner);
-    }
-    function _transferOwnership(address payable newOwner) internal {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        emit OwnershipTransferred(_owner, newOwner);
-        _owner = newOwner;
-    }
-}
 
 contract ERC20 is Context, IERC20 {
     using SafeMath for uint256;
@@ -184,24 +113,24 @@ contract ERC20 is Context, IERC20 {
     mapping (address => mapping (address => uint256)) private _allowances;
 
     uint256 _totalSupply;
-    function totalSupply() public view override returns (uint256) {
+    function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
-    function balanceOf(address account) public view override returns (uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
     }
-    function transfer(address recipient, uint256 amount) public override returns (bool) {
+    function transfer(address recipient, uint256 amount) public returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
-    function allowance(address owner, address spender) public view override returns (uint256) {
+    function allowance(address owner, address spender) public view returns (uint256) {
         return _allowances[owner][spender];
     }
-    function approve(address spender, uint256 amount) public override returns (bool) {
+    function approve(address spender, uint256 amount) public returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
-    function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
         return true;
