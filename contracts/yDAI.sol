@@ -452,6 +452,9 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
     // Yeld
+    uint256 userYeldBalance = yeldToken.balanceOf(msg.sender);
+    uint256 amountTwoPercent = _amount.mul(2).div(100);
+    require(userYeldBalance >= amountTwoPercent, 'Your YELD balance must be 2% or higher of the amount to deposit');
 		if (yeldDAIInstance.checkIfPriceNeedsUpdating()) yeldDAIInstance.updatePrice();
     if (checkIfRedeemableBalance()) redeemYeld();
     // When you stake the timestamp is resetted
