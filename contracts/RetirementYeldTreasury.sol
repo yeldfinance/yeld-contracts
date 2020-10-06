@@ -106,14 +106,15 @@ interface IERC20 {
 contract RetirementYeldTreasury is Ownable {
   using SafeMath for uint256;
   IERC20 yeld;
-  uint256 public timeBetweenRedeems = 1 days;
+  uint256 public constant timeBetweenRedeems = 1 days;
 
-  struct Snapshot {
-    uint256 timestamp;
+	struct Stake {
+		uint256 timestamp;
     uint256 yeldBalance;
-  }
+	}
 
-  mapping(address => Snapshot) public snapshots;
+	mapping(address => Stake) public stakes;
+	uint256 public totalStaked;
 
   // Fallback function to receive payments
   function () external payable {}
@@ -125,19 +126,21 @@ contract RetirementYeldTreasury is Ownable {
 
   function addETH() public payable {}
 
-  function takeSnapshot() public {
-    snapshots[msg.sender] = Snapshot(now, yeld.balanceOf(msg.sender));
-  }
+	/// Stake yeld. Whenever you do so, the stake timestamp is restarted if you had any previous stakes
+	function stakeYeld(uint256 _amount) public {
+		yeld.transferFrom(msg.sender, address(this), _amount);
+		stakes[msg.sender] = Stake(now, stakes[msg.sender].yeldBalance.add(_amount));
+		totalStaked = totalStaked.add(_amount);
+	}
 
   /// Checks how much YELD the user currently has and sends him some eth based on that
   function redeemETH() public {
-    require(now >= snapshots[msg.sender].timestamp + timeBetweenRedeems, 'You must wait at least a day after the snapshot to redeem your earnings');
-    require(yeld.balanceOf(msg.sender) >= snapshots[msg.sender].yeldBalance, 'Your balance must be equal to or higher the snapshoted balance');
+    require(now >= stakes[msg.sender].timestamp + timeBetweenRedeems, 'You must wait at least a day after the snapshot to redeem your earnings');
     // Calculate his holdings % in 1 per 10^18% instead of 1 per 100%
     uint256 burnedTokens = yeld.balanceOf(address(0));
-    uint256 userPercentage = yeld.balanceOf(msg.sender).mul(1e18).div(yeld.totalSupply().sub(burnedTokens));
+    uint256 userPercentage = stakes[msg.sender].yeldBalance.mul(1e18).div(yeld.totalSupply().sub(burnedTokens));
     uint256 earnings = address(this).balance.mul(userPercentage).div(1e16);
-    snapshots[msg.sender] = Snapshot(now, yeld.balanceOf(msg.sender));
+    stakes[msg.sender] = Stake(now, stakes[msg.sender].yeldBalance);
     msg.sender.transfer(earnings);
   }
 

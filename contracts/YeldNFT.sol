@@ -28,7 +28,7 @@ contract YeldNFT {
         }
         IERC20(yeld).transferFrom(msg.sender, address(this), _amount);
         // TransferFrom user to here. User must approve() YELD beforehand
-        deposits[msg.sender] = Deposit(deposits[msg.sender].amount + _amount, block.number);
+        deposits[msg.sender] = Deposit(deposits[msg.sender].amount.add(_amount), block.number);
     }
     
     /// Extracts your generated Yeldies while keeping the same deposit so it continues generating yeldies
@@ -60,12 +60,12 @@ contract YeldNFT {
     function getGeneratedYeldies() public view returns(uint256) {
         uint256 blocksPassed;
         if (deposits[msg.sender].start > 0) {
-            blocksPassed = block.number - deposits[msg.sender].start;
+            blocksPassed = block.number.sub(deposits[msg.sender].start);
         } else {
             blocksPassed = 0;
         }
         // This will work because amount is a token with 18 decimals
-        uint256 generatedYeldies = deposits[msg.sender].amount * blocksPassed / oneDayInBlocks;
+        uint256 generatedYeldies = deposits[msg.sender].amount.mul(blocksPassed).div(oneDayInBlocks);
         return generatedYeldies;
     }
 }
