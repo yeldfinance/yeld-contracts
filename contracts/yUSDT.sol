@@ -1,8 +1,12 @@
 pragma solidity 0.5.17;
 pragma experimental ABIEncoderV2;
 
-import './IUniswap.sol';
-import './IYeldTokens.sol';
+interface IUniswap {
+  // To convert DAI to ETH
+  function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts);
+  // To convert ETH to YELD and burn it
+  function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts);
+}
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -373,6 +377,11 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   using Address for address;
   using SafeMath for uint256;
 
+  struct Deposit {
+    uint256 amount;
+    uint256 start; // Block when it started
+  }
+
   uint256 public pool;
   address public token;
   address public compound;
@@ -389,16 +398,23 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   address public usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
   address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
   address payable public retirementYeldTreasury;
-  IYeldUSDT public yeldUSDTInstance;
   IERC20 public yeldToken;
   uint256 public maximumTokensToBurn = 50000 * 1e18;
+  uint256 public constant minimumEffectAmount = 5 * 10 ** 18;
 
   // When you stake say 1000 USDT for a day that will be your maximum
   // if you stake the next time 300 USDT your maximum will stay the same
   // if you stake 2000 at once it will increase to 2000 USDT
-  mapping(address => uint256) public staked; // How much USDT you have staked
-  mapping(address => uint256) public deposited; // How much yeldUSDT you've earned
   mapping(bytes32 => uint256) public numberOfParticipants;
+
+
+
+  mapping(address => Deposit) public deposits;
+  uint256 public constant oneDayInBlocks = 6500;
+  uint256 public yeldToRewardPerDay = 100e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
+  uint256 public constant oneMillion = 1e6;
+
+
 
   enum Lender {
       NONE,
@@ -410,8 +426,8 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
   Lender public provider = Lender.NONE;
 
-  constructor (address _yeldToken, address _yeldUSDTAddress, address payable _retirementYeldTreasury) public payable ERC20Detailed("yearn USDT", "yUSDT", 18) {
-    token = address(0xdac17f958d2ee523a2206206994597c13d831ec7);
+  constructor (address _yeldToken, address payable _retirementYeldTreasury) public payable ERC20Detailed("yearn USDT", "yUSDT", 18) {
+    token = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
     aave = address(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8);
@@ -421,7 +437,6 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     compound = address(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
     chai = address(0x06AF07097C9Eeb7fD685c692751D5C66dB49c215);
     dToken = 3;
-    yeldUSDTInstance = IYeldUSDT(_yeldUSDTAddress);
     yeldToken = IERC20(_yeldToken);
     retirementYeldTreasury = _retirementYeldTreasury;
     approveToken();
@@ -429,6 +444,10 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
   // To receive ETH after converting it from USDT
   function () external payable {}
+
+  function setRetirementYeldTreasury(address payable _treasury) public onlyOwner {
+    retirementYeldTreasury = _treasury;
+  }
 
   // In case a new uniswap router version is released
   function setUniswapRouter(address _uniswapRouter) public onlyOwner {
@@ -443,6 +462,33 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     owner().transfer(address(this).balance);
   }
 
+  function changeYeldToRewardPerDay(uint256 _amount) public onlyOwner {
+    yeldToRewardPerDay = _amount;
+  }
+
+  function getGeneratedYelds() public view returns(uint256) {
+    uint256 blocksPassed;
+    if (deposits[msg.sender].start > 0) {
+      blocksPassed = block.number.sub(deposits[msg.sender].start);
+    } else {
+      blocksPassed = 0;
+    }
+    // This will work because amount is a token with 18 decimals
+    // Take the deposit, reduce it by 1 million (by removing 6 zeroes) so you get 1
+    // That 1 means get 1 YELD per day (in blocks). Now multiply that 1 by 100 to get 100 YELD per day
+    //                       your deposits in dai       div by 1 million * by yeld to reward / 1e18 since yeldToReward is in 18 decimals to be able to provide a smaller price since
+    // we can't go below 1 in a variable. You can't make the price 0.00001 that's why we need that 1e18 padding
+    uint256 generatedYelds = deposits[msg.sender].amount.div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
+    return generatedYelds;
+  }
+
+  function extractYELDEarningsWhileKeepingDeposit() public {
+    require(deposits[msg.sender].start > 0 && deposits[msg.sender].amount > 0, 'Must have deposited stablecoins beforehand');
+    uint256 generatedYelds = getGeneratedYelds();
+    deposits[msg.sender] = Deposit(deposits[msg.sender].amount, block.number);
+    yeldToken.transfer(msg.sender, generatedYelds);
+  }
+
   function deposit(uint256 _amount)
       external
       nonReentrant
@@ -453,15 +499,10 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
     // Yeld
     uint256 userYeldBalance = yeldToken.balanceOf(msg.sender);
-    uint256 amountTwoPercent = _amount.mul(2).div(100);
-    require(userYeldBalance >= amountTwoPercent, 'Your YELD balance must be 2% or higher of the amount to deposit');
-		if (yeldUSDTInstance.checkIfPriceNeedsUpdating()) yeldUSDTInstance.updatePrice();
-    if (checkIfRedeemableBalance()) redeemYeld();
-    // When you stake the timestamp is resetted
-    staked[msg.sender] = staked[msg.sender].add(_amount);
-    uint256 yeldUSDTToReceive = _amount.mul(yeldUSDTInstance.fromUSDTToYeldUSDTPrice()).div(10 ** yeldUSDTInstance.yeldUSDTDecimals());
-    deposited[msg.sender] = deposited[msg.sender].add(yeldUSDTToReceive);
-    yeldUSDTInstance.mint(msg.sender, yeldUSDTToReceive);
+    uint256 amountFivePercent = _amount.mul(5).div(100);
+    require(userYeldBalance >= amountFivePercent, 'Your YELD balance must be 5% or higher of the amount to deposit');
+    if (getGeneratedYelds() > 0) extractYELDEarningsWhileKeepingDeposit();
+    deposits[msg.sender] = Deposit(deposits[msg.sender].amount.add(_amount), block.number);
     // Yeld
 
     // Calculate pool shares
@@ -474,23 +515,6 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     }
     pool = calcPoolValueInToken();
     _mint(msg.sender, shares);
-  }
-
-	// Returns true if there's a YELD balance to redeem or false if not
-	function checkIfRedeemableBalance() public view returns(bool) {
-		uint256 myYeldUSDTBalance = yeldUSDTInstance.balanceOf(msg.sender);
-    return myYeldUSDTBalance != 0;
-	}
-
-  function redeemYeld() public {
-    if (yeldUSDTInstance.checkIfPriceNeedsUpdating()) yeldUSDTInstance.updatePrice();
-    if (checkIfRedeemableBalance()) {
-      uint256 myYeldUSDTBalance = yeldUSDTInstance.balanceOf(msg.sender);
-      uint256 yeldToRedeem = myYeldUSDTBalance.div(yeldUSDTInstance.fromYeldUSDTToYeld()).div(10 ** yeldUSDTInstance.yeldUSDTDecimals());
-      yeldUSDTInstance.burn(msg.sender, deposited[msg.sender]);
-      deposited[msg.sender] = 0;
-      yeldToken.transfer(msg.sender, yeldToRedeem);
-    }
   }
 
   // Converts USDT to ETH and returns how much ETH has been received from Uniswap
@@ -538,29 +562,31 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       }
 
       // Yeld
-      if (yeldUSDTInstance.checkIfPriceNeedsUpdating()) yeldUSDTInstance.updatePrice();
-      if (checkIfRedeemableBalance()) redeemYeld();
+      uint256 generatedYelds = getGeneratedYelds();
+      uint256 halfProfits = (r.sub(deposits[msg.sender].amount, '#3 Half profits sub error')).div(2);
+      deposits[msg.sender] = Deposit(deposits[msg.sender].amount.sub(_shares), block.number);
+      yeldToken.transfer(msg.sender, generatedYelds);
+
       // Take a portion of the profits for the buy and burn and retirement yeld
       // Convert half the USDT earned into ETH for the protocol algorithms
-      uint256 halfProfits = (r.sub(staked[msg.sender])).div(2);
-      staked[msg.sender] = staked[msg.sender].sub(_shares);
-      uint256 stakingProfits = usdtToETH(halfProfits);
-
-      uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
-      if (tokensAlreadyBurned < maximumTokensToBurn) {
-        // 98% is the 49% doubled since we already took the 50%
-        uint256 ethToSwap = stakingProfits.mul(98).div(100);
-        // Buy and burn only applies up to 50k tokens burned
-        buyNBurn(ethToSwap);
-        // 1% for the Retirement Yield
-        uint256 retirementYeld = stakingProfits.mul(2).div(100);
-        // Send to the treasury
-        retirementYeldTreasury.transfer(retirementYeld);
-      } else {
-        // If we've reached the maximum burn point, send half the profits to the treasury to reward holders
-        uint256 retirementYeld = stakingProfits;
-        // Send to the treasury
-        retirementYeldTreasury.transfer(retirementYeld);
+      if (halfProfits > minimumEffectAmount) {
+        uint256 stakingProfits = usdtToETH(halfProfits);
+        uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
+        if (tokensAlreadyBurned < maximumTokensToBurn) {
+          // 98% is the 49% doubled since we already took the 50%
+          uint256 ethToSwap = stakingProfits.mul(98).div(100);
+          // Buy and burn only applies up to 50k tokens burned
+          buyNBurn(ethToSwap);
+          // 1% for the Retirement Yield
+          uint256 retirementYeld = stakingProfits.mul(2).div(100);
+          // Send to the treasury
+          retirementYeldTreasury.transfer(retirementYeld);
+        } else {
+          // If we've reached the maximum burn point, send half the profits to the treasury to reward holders
+          uint256 retirementYeld = stakingProfits;
+          // Send to the treasury
+          retirementYeldTreasury.transfer(retirementYeld);
+        }
       }
       // Yeld
 
