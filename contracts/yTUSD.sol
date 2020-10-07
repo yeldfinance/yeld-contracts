@@ -411,7 +411,7 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   Lender public provider = Lender.NONE;
 
   constructor (address _yeldToken, address _yeldTUSDAddress, address payable _retirementYeldTreasury) public payable ERC20Detailed("yearn TUSD", "yTUSD", 18) {
-    token = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+    token = address(0x0000000000085d4780B73119b644AE5ecd22b376);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
     aave = address(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8);
@@ -543,6 +543,7 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       // Take a portion of the profits for the buy and burn and retirement yeld
       // Convert half the TUSD earned into ETH for the protocol algorithms
       uint256 halfProfits = (r.sub(staked[msg.sender])).div(2);
+      staked[msg.sender] = staked[msg.sender].sub(_shares);
       uint256 stakingProfits = tusdToETH(halfProfits);
 
       uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));

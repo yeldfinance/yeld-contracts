@@ -1,8 +1,69 @@
 pragma solidity 0.5.17;
 pragma experimental ABIEncoderV2;
 
-import './IUniswap.sol';
-import './IYeldTokens.sol';
+
+interface IUniswap {
+  
+  function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts);
+  
+  function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts);
+}
+
+interface IYeldDAI {
+  function yDAIAddress() external view returns(address);
+  function initialPrice() external view returns(uint256);
+  function fromYeldDAIToYeld() external view returns(uint256);
+  function fromDAIToYeldDAIPrice() external view returns(uint256);
+  function yeldReward() external view returns(uint256);
+  function yeldDAIDecimals() external view returns(uint256);
+  function mint(address _to, uint256 _amount) external;
+  function burn(address _to, uint256 _amount) external;
+  function balanceOf(address _of) external view returns(uint256);
+	function checkIfPriceNeedsUpdating() external view returns(bool);
+	function updatePrice() external;
+}
+
+interface IYeldTUSD {
+  function yTUSDAddress() external view returns(address);
+  function initialPrice() external view returns(uint256);
+  function fromYeldTUSDToYeld() external view returns(uint256);
+  function fromTUSDToYeldTUSDPrice() external view returns(uint256);
+  function yeldReward() external view returns(uint256);
+  function yeldTUSDDecimals() external view returns(uint256);
+  function mint(address _to, uint256 _amount) external;
+  function burn(address _to, uint256 _amount) external;
+  function balanceOf(address _of) external view returns(uint256);
+	function checkIfPriceNeedsUpdating() external view returns(bool);
+	function updatePrice() external;
+}
+
+interface IYeldUSDT {
+  function yUSDTAddress() external view returns(address);
+  function initialPrice() external view returns(uint256);
+  function fromYeldUSDTToYeld() external view returns(uint256);
+  function fromUSDTToYeldUSDTPrice() external view returns(uint256);
+  function yeldReward() external view returns(uint256);
+  function yeldUSDTDecimals() external view returns(uint256);
+  function mint(address _to, uint256 _amount) external;
+  function burn(address _to, uint256 _amount) external;
+  function balanceOf(address _of) external view returns(uint256);
+	function checkIfPriceNeedsUpdating() external view returns(bool);
+	function updatePrice() external;
+}
+
+interface IYeldUSDC {
+  function yUSDCAddress() external view returns(address);
+  function initialPrice() external view returns(uint256);
+  function fromYeldUSDCToYeld() external view returns(uint256);
+  function fromUSDCToYeldUSDCPrice() external view returns(uint256);
+  function yeldReward() external view returns(uint256);
+  function yeldUSDCDecimals() external view returns(uint256);
+  function mint(address _to, uint256 _amount) external;
+  function burn(address _to, uint256 _amount) external;
+  function balanceOf(address _of) external view returns(uint256);
+	function checkIfPriceNeedsUpdating() external view returns(bool);
+	function updatePrice() external;
+}
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
@@ -17,14 +78,14 @@ interface IERC20 {
 
 contract Context {
     constructor () internal { }
-    // solhint-disable-previous-line no-empty-blocks
+    
 
     function _msgSender() internal view returns (address payable) {
         return msg.sender;
     }
 
     function _msgData() internal view returns (bytes memory) {
-        this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
+        this; 
         return msg.data;
     }
 }
@@ -200,7 +261,7 @@ library SafeMath {
         return div(a, b, "SafeMath: division by zero");
     }
     function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        // Solidity only automatically asserts when dividing by 0
+        
         require(b > 0, errorMessage);
         uint256 c = a / b;
 
@@ -219,7 +280,7 @@ library Address {
     function isContract(address account) internal view returns (bool) {
         bytes32 codehash;
         bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
-        // solhint-disable-next-line no-inline-assembly
+        
         assembly { codehash := extcodehash(account) }
         return (codehash != 0x0 && codehash != accountHash);
     }
@@ -229,7 +290,7 @@ library Address {
     function sendValue(address payable recipient, uint256 amount) internal {
         require(address(this).balance >= amount, "Address: insufficient balance");
 
-        // solhint-disable-next-line avoid-call-value
+        
         (bool success, ) = recipient.call.value(amount)("");
         require(success, "Address: unable to send value, recipient may have reverted");
     }
@@ -266,12 +327,12 @@ library SafeERC20 {
     function callOptionalReturn(IERC20 token, bytes memory data) private {
         require(address(token).isContract(), "SafeERC20: call to non-contract");
 
-        // solhint-disable-next-line avoid-low-level-calls
+        
         (bool success, bytes memory returndata) = address(token).call(data);
         require(success, "SafeERC20: low-level call failed");
 
-        if (returndata.length > 0) { // Return data is optional
-            // solhint-disable-next-line max-line-length
+        if (returndata.length > 0) { 
+            
             require(abi.decode(returndata, (bool)), "SafeERC20: ERC20 operation did not succeed");
         }
     }
@@ -317,20 +378,20 @@ contract Structs {
     }
 
     enum ActionType {
-        Deposit,   // supply tokens
-        Withdraw  // borrow tokens
+        Deposit,   
+        Withdraw  
     }
 
     enum AssetDenomination {
-        Wei // the amount is denominated in wei
+        Wei 
     }
 
     enum AssetReference {
-        Delta // the amount is given as a delta from the current value
+        Delta 
     }
 
     struct AssetAmount {
-        bool sign; // true if positive
+        bool sign; 
         AssetDenomination denomination;
         AssetReference ref;
         uint256 value;
@@ -348,12 +409,12 @@ contract Structs {
     }
 
     struct Info {
-        address owner;  // The address that owns the account
-        uint256 number; // A nonce that allows a single address to control many accounts
+        address owner;  
+        uint256 number; 
     }
 
     struct Wei {
-        bool sign; // true if positive
+        bool sign; 
         uint256 value;
     }
 }
@@ -368,7 +429,7 @@ interface LendingPoolAddressesProvider {
     function getLendingPoolCore() external view returns (address);
 }
 
-contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
+contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -384,20 +445,20 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   uint256 public dToken;
   address public apr;
   address public chai;
-  // Add other tokens if implemented for another stablecoin
+  
   address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-  address public usdc = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+  address public dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
   address payable public retirementYeldTreasury;
-  IYeldUSDC public yeldUSDCInstance;
+  IYeldDAI public yeldDAIInstance;
   IERC20 public yeldToken;
   uint256 public maximumTokensToBurn = 50000 * 1e18;
 
-  // When you stake say 1000 USDC for a day that will be your maximum
-  // if you stake the next time 300 USDC your maximum will stay the same
-  // if you stake 2000 at once it will increase to 2000 USDC
-  mapping(address => uint256) public staked; // How much USDC you have staked
-  mapping(address => uint256) public deposited; // How much yeldUSDC you've earned
+  
+  
+  
+  mapping(address => uint256) public staked; 
+  mapping(address => uint256) public deposited; 
   mapping(bytes32 => uint256) public numberOfParticipants;
 
   enum Lender {
@@ -410,8 +471,8 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
   Lender public provider = Lender.NONE;
 
-  constructor (address _yeldToken, address _yeldUSDCAddress, address payable _retirementYeldTreasury) public payable ERC20Detailed("yearn USDC", "yUSDC", 18) {
-    token = address(0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48);
+  constructor (address _yeldToken, address _yeldDAIAddress, address payable _retirementYeldTreasury) public payable ERC20Detailed("yearn DAI", "yDAI", 18) {
+    token = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
     aave = address(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8);
@@ -421,16 +482,16 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     compound = address(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
     chai = address(0x06AF07097C9Eeb7fD685c692751D5C66dB49c215);
     dToken = 3;
-    yeldUSDCInstance = IYeldUSDC(_yeldUSDCAddress);
+    yeldDAIInstance = IYeldDAI(_yeldDAIAddress);
     yeldToken = IERC20(_yeldToken);
     retirementYeldTreasury = _retirementYeldTreasury;
     approveToken();
   }
 
-  // To receive ETH after converting it from USDC
+  
   function () external payable {}
 
-  // In case a new uniswap router version is released
+  
   function setUniswapRouter(address _uniswapRouter) public onlyOwner {
     uniswapRouter = _uniswapRouter;
   }
@@ -451,20 +512,20 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     pool = calcPoolValueInToken();
     IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
-    // Yeld
+    
     uint256 userYeldBalance = yeldToken.balanceOf(msg.sender);
     uint256 amountTwoPercent = _amount.mul(2).div(100);
     require(userYeldBalance >= amountTwoPercent, 'Your YELD balance must be 2% or higher of the amount to deposit');
-		if (yeldUSDCInstance.checkIfPriceNeedsUpdating()) yeldUSDCInstance.updatePrice();
+		if (yeldDAIInstance.checkIfPriceNeedsUpdating()) yeldDAIInstance.updatePrice();
     if (checkIfRedeemableBalance()) redeemYeld();
-    // When you stake the timestamp is resetted
+    
     staked[msg.sender] = staked[msg.sender].add(_amount);
-    uint256 yeldUSDCToReceive = _amount.mul(yeldUSDCInstance.fromUSDCToYeldUSDCPrice()).div(10 ** yeldUSDCInstance.yeldUSDCDecimals());
-    deposited[msg.sender] = deposited[msg.sender].add(yeldUSDCToReceive);
-    yeldUSDCInstance.mint(msg.sender, yeldUSDCToReceive);
-    // Yeld
+    uint256 yeldDAIToReceive = _amount.mul(yeldDAIInstance.fromDAIToYeldDAIPrice()).div(10 ** yeldDAIInstance.yeldDAIDecimals());
+    deposited[msg.sender] = deposited[msg.sender].add(yeldDAIToReceive);
+    yeldDAIInstance.mint(msg.sender, yeldDAIToReceive);
+    
 
-    // Calculate pool shares
+    
     uint256 shares = 0;
     if (pool == 0) {
       shares = _amount;
@@ -476,50 +537,50 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     _mint(msg.sender, shares);
   }
 
-	// Returns true if there's a YELD balance to redeem or false if not
+	
 	function checkIfRedeemableBalance() public view returns(bool) {
-		uint256 myYeldUSDCBalance = yeldUSDCInstance.balanceOf(msg.sender);
-    return myYeldUSDCBalance != 0;
+		uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
+    return myYeldDAIBalance != 0;
 	}
 
   function redeemYeld() public {
-    if (yeldUSDCInstance.checkIfPriceNeedsUpdating()) yeldUSDCInstance.updatePrice();
+    if (yeldDAIInstance.checkIfPriceNeedsUpdating()) yeldDAIInstance.updatePrice();
     if (checkIfRedeemableBalance()) {
-      uint256 myYeldUSDCBalance = yeldUSDCInstance.balanceOf(msg.sender);
-      uint256 yeldToRedeem = myYeldUSDCBalance.div(yeldUSDCInstance.fromYeldUSDCToYeld()).div(10 ** yeldUSDCInstance.yeldUSDCDecimals());
-      yeldUSDCInstance.burn(msg.sender, deposited[msg.sender]);
+      uint256 myYeldDAIBalance = yeldDAIInstance.balanceOf(msg.sender);
+      uint256 yeldToRedeem = myYeldDAIBalance.div(yeldDAIInstance.fromYeldDAIToYeld()).div(10 ** yeldDAIInstance.yeldDAIDecimals());
+      yeldDAIInstance.burn(msg.sender, deposited[msg.sender]);
       deposited[msg.sender] = 0;
       yeldToken.transfer(msg.sender, yeldToRedeem);
     }
   }
 
-  // Converts USDC to ETH and returns how much ETH has been received from Uniswap
-  function usdcToETH(uint256 _amount) internal returns(uint256) {
-      IERC20(usdc).safeApprove(uniswapRouter, 0);
-      IERC20(usdc).safeApprove(uniswapRouter, _amount);
+  
+  function daiToETH(uint256 _amount) internal returns(uint256) {
+      IERC20(dai).safeApprove(uniswapRouter, 0);
+      IERC20(dai).safeApprove(uniswapRouter, _amount);
       address[] memory path = new address[](2);
-      path[0] = usdc;
+      path[0] = dai;
       path[1] = weth;
-      // swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-      // 'amounts' is an array where [0] is input USDC amount and [1] is the resulting ETH after the conversion
-      // even tho we've specified the WETH address, we'll receive ETH since that's how it works on uniswap
-      // https://uniswap.org/docs/v2/smart-contracts/router02/#swapexacttokensforeth
+      
+      
+      
+      
       uint[] memory amounts = IUniswap(uniswapRouter).swapExactTokensForETH(_amount, uint(0), path, address(this), now.add(1800));
       return amounts[1];
   }
 
-  // Buys YELD tokens paying in ETH on Uniswap and removes them from circulation
-  // Returns how many YELD tokens have been burned
+  
+  
   function buyNBurn(uint256 _ethToSwap) internal returns(uint256) {
     address[] memory path = new address[](2);
     path[0] = weth;
     path[1] = address(yeldToken);
-    // Burns the tokens by taking them out of circulation, sending them to the 0x0 address
+    
     uint[] memory amounts = IUniswap(uniswapRouter).swapExactETHForTokens.value(_ethToSwap)(uint(0), path, address(0), now.add(1800));
     return amounts[1];
   }
 
-  // No rebalance implementation for lower fees and faster swaps
+  
   function withdraw(uint256 _shares)
       external
       nonReentrant
@@ -530,39 +591,39 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       pool = calcPoolValueInToken();
       uint256 r = (pool.mul(_shares)).div(_totalSupply);
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
-      _totalSupply = _totalSupply.sub(_shares);
+      _totalSupply = _totalSupply.sub(_shares, '#1 Total supply sub error');
       emit Transfer(msg.sender, address(0), _shares);
       uint256 b = IERC20(token).balanceOf(address(this));
       if (b < r) {
-        _withdrawSome(r.sub(b));
+        _withdrawSome(r.sub(b, '#2 Withdraw some sub error'));
       }
 
-      // Yeld
-      if (yeldUSDCInstance.checkIfPriceNeedsUpdating()) yeldUSDCInstance.updatePrice();
+      
+      if (yeldDAIInstance.checkIfPriceNeedsUpdating()) yeldDAIInstance.updatePrice();
       if (checkIfRedeemableBalance()) redeemYeld();
-      // Take a portion of the profits for the buy and burn and retirement yeld
-      // Convert half the USDC earned into ETH for the protocol algorithms
-      uint256 halfProfits = (r.sub(staked[msg.sender])).div(2);
+      
+      
+      uint256 halfProfits = (r.sub(staked[msg.sender], '#3 Half profits sub error')).div(2);
       staked[msg.sender] = staked[msg.sender].sub(_shares);
-      uint256 stakingProfits = usdcToETH(halfProfits);
+      uint256 stakingProfits = daiToETH(halfProfits);
 
       uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
       if (tokensAlreadyBurned < maximumTokensToBurn) {
-        // 98% is the 49% doubled since we already took the 50%
+        
         uint256 ethToSwap = stakingProfits.mul(98).div(100);
-        // Buy and burn only applies up to 50k tokens burned
+        
         buyNBurn(ethToSwap);
-        // 1% for the Retirement Yield
+        
         uint256 retirementYeld = stakingProfits.mul(2).div(100);
-        // Send to the treasury
+        
         retirementYeldTreasury.transfer(retirementYeld);
       } else {
-        // If we've reached the maximum burn point, send half the profits to the treasury to reward holders
+        
         uint256 retirementYeld = stakingProfits;
-        // Send to the treasury
+        
         retirementYeldTreasury.transfer(retirementYeld);
       }
-      // Yeld
+      
 
       IERC20(token).safeTransfer(msg.sender, r);
       pool = calcPoolValueInToken();
@@ -625,7 +686,7 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       return IERC20(compound).balanceOf(address(this));
   }
   function balanceCompoundInToken() public view returns (uint256) {
-    // Mantisa 1e18 to decimals
+    
     uint256 b = balanceCompound();
     if (b > 0) {
       b = b.mul(Compound(compound).exchangeRateStored()).div(1e18);
@@ -706,7 +767,7 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     uint256 b = balanceCompound();
     uint256 bT = balanceCompoundInToken();
     require(bT >= _amount, "insufficient funds");
-    // can have unintentional rounding errors
+    
     uint256 amount = (b.mul(_amount)).div(bT).add(1);
     _withdrawCompound(amount);
   }
@@ -715,7 +776,7 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     uint256 b = balanceFulcrum();
     uint256 bT = balanceFulcrumInToken();
     require(bT >= _amount, "insufficient funds");
-    // can have unintentional rounding errors
+    
     uint256 amount = (b.mul(_amount)).div(bT).add(1);
     _withdrawFulcrum(amount);
   }

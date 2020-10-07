@@ -530,11 +530,11 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       pool = calcPoolValueInToken();
       uint256 r = (pool.mul(_shares)).div(_totalSupply);
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
-      _totalSupply = _totalSupply.sub(_shares);
+      _totalSupply = _totalSupply.sub(_shares, '#1 Total supply sub error');
       emit Transfer(msg.sender, address(0), _shares);
       uint256 b = IERC20(token).balanceOf(address(this));
       if (b < r) {
-        _withdrawSome(r.sub(b));
+        _withdrawSome(r.sub(b, '#2 Withdraw some sub error'));
       }
 
       // Yeld
@@ -542,7 +542,8 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       if (checkIfRedeemableBalance()) redeemYeld();
       // Take a portion of the profits for the buy and burn and retirement yeld
       // Convert half the DAI earned into ETH for the protocol algorithms
-      uint256 halfProfits = (r.sub(staked[msg.sender])).div(2);
+      uint256 halfProfits = (r.sub(staked[msg.sender], '#3 Half profits sub error')).div(2);
+      staked[msg.sender] = staked[msg.sender].sub(_shares);
       uint256 stakingProfits = daiToETH(halfProfits);
 
       uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
