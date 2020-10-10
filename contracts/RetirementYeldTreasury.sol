@@ -133,6 +133,15 @@ contract RetirementYeldTreasury is Ownable {
 		totalStaked = totalStaked.add(_amount);
 	}
 
+	function unstake(uint256 _amount) public {
+		uint256 userBalance = stakes[msg.sender].yeldBalance;
+		require(userBalance > 0 && _amount > 0, "You can't unstake less than zero");
+		require(_amount <= userBalance, "You can't withdraw more than your balance");
+		stakes[msg.sender] = Stake(now, stakes[msg.sender].yeldBalance.sub(_amount));
+		totalStaked = totalStaked.sub(_amount);
+		yeld.transfer(msg.sender, _amount);
+	}
+
   /// Checks how much YELD the user currently has and sends him some eth based on that
   function redeemETH() public {
     require(now >= stakes[msg.sender].timestamp + timeBetweenRedeems, 'You must wait at least a day after the snapshot to redeem your earnings');
@@ -146,6 +155,10 @@ contract RetirementYeldTreasury is Ownable {
 
   function setYeld(address _yeld) public onlyOwner {
     yeld = IERC20(_yeld);
+  }
+
+	function extractETHIfStuck() public onlyOwner {
+    owner().transfer(address(this).balance);
   }
 
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {

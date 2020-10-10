@@ -496,9 +496,6 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
     // Yeld
-    uint256 userYeldBalance = yeldToken.balanceOf(msg.sender);
-    uint256 amountFivePercent = _amount.mul(5).div(100);
-    require(userYeldBalance >= amountFivePercent, 'Your YELD balance must be 5% or higher of the amount to deposit');
     if (getGeneratedYelds() > 0) extractYELDEarningsWhileKeepingDeposit();
     deposits[msg.sender] = Deposit(deposits[msg.sender].amount.add(_amount), block.number);
     // Yeld
