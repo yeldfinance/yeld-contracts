@@ -124,8 +124,6 @@ contract RetirementYeldTreasury is Ownable {
     yeld = IERC20(_yeld);
   }
 
-  function addETH() public payable {}
-
 	/// Stake yeld. Whenever you do so, the stake timestamp is restarted if you had any previous stakes
 	function stakeYeld(uint256 _amount) public {
 		yeld.transferFrom(msg.sender, address(this), _amount);
