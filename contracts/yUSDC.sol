@@ -477,7 +477,8 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     // That 1 means get 1 YELD per day (in blocks). Now multiply that 1 by 100 to get 100 YELD per day
     //                       your deposits in dai       div by 1 million * by yeld to reward / 1e18 since yeldToReward is in 18 decimals to be able to provide a smaller price since
     // we can't go below 1 in a variable. You can't make the price 0.00001 that's why we need that 1e18 padding
-    uint256 generatedYelds = deposits[msg.sender].amount.div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
+    // For USDC and Tether gotta multiply by 1e12 since they have 6 decimals to get the proper result of YELD
+    uint256 generatedYelds = deposits[msg.sender].amount.mul(1e12).div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
 
