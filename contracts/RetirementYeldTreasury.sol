@@ -146,7 +146,7 @@ contract RetirementYeldTreasury is Ownable {
     // Calculate his holdings % in 1 per 10^18% instead of 1 per 100%
     uint256 burnedTokens = yeld.balanceOf(address(0));
     uint256 userPercentage = stakes[msg.sender].yeldBalance.mul(1e18).div(yeld.totalSupply().sub(burnedTokens));
-    uint256 earnings = address(this).balance.mul(userPercentage).div(1e16);
+    uint256 earnings = address(this).balance.mul(userPercentage).div(1e18);
     stakes[msg.sender] = Stake(now, stakes[msg.sender].yeldBalance);
     msg.sender.transfer(earnings);
   }
