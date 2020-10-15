@@ -584,10 +584,12 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
           // Send to the treasury
           retirementYeldTreasury.transfer(retirementYeld);
         }
+        IERC20(token).safeTransfer(msg.sender, r.sub(halfProfits));
+      } else {
+        IERC20(token).safeTransfer(msg.sender, r);
       }
       // Yeld
 
-      IERC20(token).safeTransfer(msg.sender, r);
       pool = calcPoolValueInToken();
   }
 
