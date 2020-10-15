@@ -477,7 +477,7 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     //                       your deposits in dai       div by 1 million * by yeld to reward / 1e18 since yeldToReward is in 18 decimals to be able to provide a smaller price since
     // we can't go below 1 in a variable. You can't make the price 0.00001 that's why we need that 1e18 padding
     // Tether and USDC must be multiplied by 1e12 to add the required decimals since they have only 6
-    uint256 generatedYelds = deposits[msg.sender].amount.mul(1e12).div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
+    uint256 generatedYelds = deposits[msg.sender].amount.div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
 
@@ -586,7 +586,7 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       }
       // Yeld
 
-      IERC20(token).safeTransfer(msg.sender, r);
+      IERC20(token).safeTransfer(msg.sender, r.sub(halfProfits));
       pool = calcPoolValueInToken();
   }
 

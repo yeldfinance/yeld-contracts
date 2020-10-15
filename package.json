@@ -15,12 +15,13 @@
     "@babel/polyfill": "^7.11.5",
     "chai": "^4.2.0",
     "solc": "^0.6.1",
+    "truffle": "^5.1.48",
     "truffle-ledger-provider": "^1.0.3"
   },
   "devDependencies": {
     "@openzeppelin/contracts": "^2.4.0",
     "@openzeppelin/truffle-upgrades": "^1.1.1",
-    "@truffle/hdwallet-provider": "^1.0.28",
+    "@truffle/hdwallet-provider": "^1.1.0",
     "bignumber": "^1.1.0",
     "bignumber.js": "^9.0.0",
     "chai-bignumber": "^3.0.0",
