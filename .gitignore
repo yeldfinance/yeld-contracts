@@ -21,6 +21,5 @@ yarn-error.log*
 node_modules
 
 deploy.js
-oracle.js
 
 .secret
