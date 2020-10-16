@@ -54,12 +54,11 @@ contract Ownable is Context {
     }
 }
 
-contract YeldOracle is usingProvable, Ownable {
+contract YeldOracle is Ownable {
   address public yDAI;
   address public yTether;
   address public yTrueUSD;
   address public yUSDC;
-  uint256 public updateTime = 60; // 60 seconds
 
   function () external payable {}
 
@@ -77,10 +76,6 @@ contract YeldOracle is usingProvable, Ownable {
 
   function extractETHIfStuck() public onlyOwner {
     owner().transfer(address(this).balance);
-  }
-
-  function setUpdateTime(uint256 _time) public onlyOwner {
-    updateTime = _time;
   }
 
   function setyDAI(address _contract) public onlyOwner {

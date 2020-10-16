@@ -1,14 +1,17 @@
 {
-  "contractName": "Context",
+  "contractName": "IYeldContract",
   "abi": [
     {
+      "constant": false,
       "inputs": [],
+      "name": "rebalance",
+      "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
-      "type": "constructor"
+      "type": "function"
     }
   ],
-  "metadata": "{\"compiler\":{\"version\":\"0.5.17+commit.d19bba13\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/C/Users/merun/Desktop/projects/yeld-contracts/contracts/YeldOracle.sol\":\"Context\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":999999},\"remappings\":[]},\"sources\":{\"/C/Users/merun/Desktop/projects/yeld-contracts/contracts/YeldOracle.sol\":{\"keccak256\":\"0x178ac9eeea0d075a56d987024e14b563f10dfdf8a934e9b433d5185022dd1c12\",\"urls\":[\"bzz-raw://abf435bb15adc56bad524073874b995ac3ef39ad30bae51ff1724fc81f10885c\",\"dweb:/ipfs/QmW8QisBgEcBvyR3geYdfxbkgPbog7Lp7woxNbS5YdBLfP\"]}},\"version\":1}",
+  "metadata": "{\"compiler\":{\"version\":\"0.5.17+commit.d19bba13\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":false,\"inputs\":[],\"name\":\"rebalance\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/C/Users/merun/Desktop/projects/yeld-contracts/contracts/YeldOracle.sol\":\"IYeldContract\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":999999},\"remappings\":[]},\"sources\":{\"/C/Users/merun/Desktop/projects/yeld-contracts/contracts/YeldOracle.sol\":{\"keccak256\":\"0x178ac9eeea0d075a56d987024e14b563f10dfdf8a934e9b433d5185022dd1c12\",\"urls\":[\"bzz-raw://abf435bb15adc56bad524073874b995ac3ef39ad30bae51ff1724fc81f10885c\",\"dweb:/ipfs/QmW8QisBgEcBvyR3geYdfxbkgPbog7Lp7woxNbS5YdBLfP\"]}},\"version\":1}",
   "bytecode": "0x",
   "deployedBytecode": "0x",
   "sourceMap": "",
@@ -7487,7 +7490,7 @@
   },
   "networks": {},
   "schemaVersion": "3.2.2",
-  "updatedAt": "2020-10-15T23:48:53.233Z",
+  "updatedAt": "2020-10-15T23:48:53.241Z",
   "devdoc": {
     "methods": {}
   },
