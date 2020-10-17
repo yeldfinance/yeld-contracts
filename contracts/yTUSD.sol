@@ -377,11 +377,6 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   using Address for address;
   using SafeMath for uint256;
 
-  struct Deposit {
-    uint256 amount;
-    uint256 start; // Block when it started
-  }
-
   uint256 public pool;
   address public token;
   address public compound;
@@ -400,15 +395,12 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   address payable public retirementYeldTreasury;
   IERC20 public yeldToken;
   uint256 public maximumTokensToBurn = 50000 * 1e18;
-  uint256 public constant minimumEffectAmount = 5 * 10 ** 18;
   
   // When you stake say 1000 TUSD for a day that will be your maximum
   // if you stake the next time 300 TUSD your maximum will stay the same
   // if you stake 2000 at once it will increase to 2000 TUSD
   mapping(bytes32 => uint256) public numberOfParticipants;
-
-
-  mapping(address => Deposit) public deposits;
+  mapping(address => uint256) public depositBlockStarts;
   uint256 public constant oneDayInBlocks = 6500;
   uint256 public yeldToRewardPerDay = 100e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
@@ -466,8 +458,8 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
   function getGeneratedYelds() public view returns(uint256) {
     uint256 blocksPassed;
-    if (deposits[msg.sender].start > 0) {
-      blocksPassed = block.number.sub(deposits[msg.sender].start);
+    if (depositBlockStarts[msg.sender] > 0) {
+      blocksPassed = block.number.sub(depositBlockStarts[msg.sender]);
     } else {
       blocksPassed = 0;
     }
@@ -476,15 +468,19 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     // That 1 means get 1 YELD per day (in blocks). Now multiply that 1 by 100 to get 100 YELD per day
     //                       your deposits in dai       div by 1 million * by yeld to reward / 1e18 since yeldToReward is in 18 decimals to be able to provide a smaller price since
     // we can't go below 1 in a variable. You can't make the price 0.00001 that's why we need that 1e18 padding
-    // Tether and USDC must be multiplied by 1e12 to add the required decimals since they have only 6
-    uint256 generatedYelds = deposits[msg.sender].amount.div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
+    // For USDC and Tether gotta multiply by 1e12 since they have 6 decimals to get the proper result of YELD
+    uint256 ibalance = balanceOf(msg.sender); // Balance of yTokens
+    uint256 accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
+    uint256 generatedYelds = accomulatedStablecoins.mul(1e12).div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
 
   function extractYELDEarningsWhileKeepingDeposit() public {
-    require(deposits[msg.sender].start > 0 && deposits[msg.sender].amount > 0, 'Must have deposited stablecoins beforehand');
+    uint256 ibalance = balanceOf(msg.sender);
+    uint256 accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
+    require(depositBlockStarts[msg.sender] > 0 && accomulatedStablecoins > 0, 'Must have deposited stablecoins beforehand');
     uint256 generatedYelds = getGeneratedYelds();
-    deposits[msg.sender] = Deposit(deposits[msg.sender].amount, block.number);
+    depositBlockStarts[msg.sender] = block.number;
     yeldToken.transfer(msg.sender, generatedYelds);
   }
 
@@ -498,7 +494,7 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
     // Yeld
     if (getGeneratedYelds() > 0) extractYELDEarningsWhileKeepingDeposit();
-    deposits[msg.sender] = Deposit(deposits[msg.sender].amount.add(_amount), block.number);
+    depositBlockStarts[msg.sender] = block.number;
     // Yeld
 
     // Calculate pool shares
@@ -511,6 +507,7 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     }
     pool = calcPoolValueInToken();
     _mint(msg.sender, shares);
+    rebalance();
   }
 
   // Converts TUSD to ETH and returns how much ETH has been received from Uniswap
@@ -548,48 +545,48 @@ contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       uint256 ibalance = balanceOf(msg.sender);
       require(_shares <= ibalance, "insufficient balance");
       pool = calcPoolValueInToken();
-      uint256 r = (pool.mul(_shares)).div(_totalSupply);
+      uint256 stablecoinsToWithdraw = (pool.mul(_shares)).div(_totalSupply);
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
       _totalSupply = _totalSupply.sub(_shares);
       emit Transfer(msg.sender, address(0), _shares);
       uint256 b = IERC20(token).balanceOf(address(this));
-      if (b < r) {
-        _withdrawSome(r.sub(b));
+      if (b < stablecoinsToWithdraw) {
+        _withdrawSome(stablecoinsToWithdraw.sub(b));
       }
 
       // Yeld
+      uint256 totalAccomulated = (pool.mul(ibalance)).div(_totalSupply);
       uint256 generatedYelds = getGeneratedYelds();
-      uint256 halfProfits = (r.sub(deposits[msg.sender].amount, '#3 Half profits sub error')).div(2);
-      deposits[msg.sender] = Deposit(deposits[msg.sender].amount.sub(_shares), block.number);
+      // Take 1% of the amount to withdraw
+      uint256 onePercent = stablecoinsToWithdraw.div(100);
+      uint256 updatedDeposit = totalAccomulated.sub(stablecoinsToWithdraw);
+      depositBlockStarts[msg.sender] = block.number;
       yeldToken.transfer(msg.sender, generatedYelds);
 
       // Take a portion of the profits for the buy and burn and retirement yeld
       // Convert half the TUSD earned into ETH for the protocol algorithms
-      if (halfProfits > minimumEffectAmount) {
-        uint256 stakingProfits = tusdToETH(halfProfits);
-        uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
-        if (tokensAlreadyBurned < maximumTokensToBurn) {
-          // 98% is the 49% doubled since we already took the 50%
-          uint256 ethToSwap = stakingProfits.mul(98).div(100);
-          // Buy and burn only applies up to 50k tokens burned
-          buyNBurn(ethToSwap);
-          // 1% for the Retirement Yield
-          uint256 retirementYeld = stakingProfits.mul(2).div(100);
-          // Send to the treasury
-          retirementYeldTreasury.transfer(retirementYeld);
-        } else {
-          // If we've reached the maximum burn point, send half the profits to the treasury to reward holders
-          uint256 retirementYeld = stakingProfits;
-          // Send to the treasury
-          retirementYeldTreasury.transfer(retirementYeld);
-        }
-        IERC20(token).safeTransfer(msg.sender, r.sub(halfProfits));
+      uint256 stakingProfits = tusdToETH(onePercent);
+      uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
+      if (tokensAlreadyBurned < maximumTokensToBurn) {
+        // 98% is the 49% doubled since we already took the 50%
+        uint256 ethToSwap = stakingProfits.mul(98).div(100);
+        // Buy and burn only applies up to 50k tokens burned
+        buyNBurn(ethToSwap);
+        // 1% for the Retirement Yield
+        uint256 retirementYeld = stakingProfits.mul(2).div(100);
+        // Send to the treasury
+        retirementYeldTreasury.transfer(retirementYeld);
       } else {
-        IERC20(token).safeTransfer(msg.sender, r);
+        // If we've reached the maximum burn point, send half the profits to the treasury to reward holders
+        uint256 retirementYeld = stakingProfits;
+        // Send to the treasury
+        retirementYeldTreasury.transfer(retirementYeld);
       }
+      IERC20(token).safeTransfer(msg.sender, stablecoinsToWithdraw.sub(onePercent));
       // Yeld
       
       pool = calcPoolValueInToken();
+      rebalance();
   }
 
   function recommend() public view returns (Lender) {
