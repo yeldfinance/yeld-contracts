@@ -555,11 +555,9 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       }
 
       // Yeld
-      uint256 totalAccomulated = (pool.mul(ibalance)).div(_totalSupply);
       uint256 generatedYelds = getGeneratedYelds();
       // Take 1% of the amount to withdraw
       uint256 onePercent = stablecoinsToWithdraw.div(100);
-      uint256 updatedDeposit = totalAccomulated.sub(stablecoinsToWithdraw);
       depositBlockStarts[msg.sender] = block.number;
       yeldToken.transfer(msg.sender, generatedYelds);
 

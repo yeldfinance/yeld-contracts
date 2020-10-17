@@ -21,6 +21,7 @@ const rebalance = async () => {
   console.log('Rebalancing... ' + counter)
   yeldOracle.methods.rebalance().send({
     from: account,
+    gas: 8e6,
   })
   counter++
 }

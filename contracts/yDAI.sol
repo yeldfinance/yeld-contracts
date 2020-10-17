@@ -471,7 +471,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     // For USDC and Tether gotta multiply by 1e12 since they have 6 decimals to get the proper result of YELD
     uint256 ibalance = balanceOf(msg.sender); // Balance of yTokens
     uint256 accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
-    uint256 generatedYelds = accomulatedStablecoins.mul(1e12).div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
+    uint256 generatedYelds = accomulatedStablecoins.div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
 
@@ -555,11 +555,9 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       }
 
       // Yeld
-      uint256 totalAccomulated = (pool.mul(ibalance)).div(_totalSupply);
       uint256 generatedYelds = getGeneratedYelds();
       // Take 1% of the amount to withdraw
       uint256 onePercent = stablecoinsToWithdraw.div(100);
-      uint256 updatedDeposit = totalAccomulated.sub(stablecoinsToWithdraw);
       depositBlockStarts[msg.sender] = block.number;
       yeldToken.transfer(msg.sender, generatedYelds);
 
