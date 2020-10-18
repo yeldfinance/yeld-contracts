@@ -416,17 +416,15 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
 
   Lender public provider = Lender.NONE;
 
-  constructor (address _yeldToken, address payable _retirementYeldTreasury) public payable ERC20Detailed("yearn USDT", "yUSDT", 18) {
+  constructor (address _yeldToken, address payable _retirementYeldTreasury) public ERC20Detailed("yearn USDT", "yUSDT", 6) {
     token = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
     aave = address(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8);
-    aavePool = address(0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3);
-    fulcrum = address(0x493C57C4763932315A328269E1ADaD09653B9081);
-    aaveToken = address(0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d);
-    compound = address(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
-    chai = address(0x06AF07097C9Eeb7fD685c692751D5C66dB49c215);
-    dToken = 3;
+    fulcrum = address(0xF013406A0B1d544238083DF0B93ad0d2cBE0f65f);
+    aaveToken = address(0x71fc860F7D3A592A4a98740e39dB31d25db65ae8);
+    compound = address(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
+    dToken = 0;
     yeldToken = IERC20(_yeldToken);
     retirementYeldTreasury = _retirementYeldTreasury;
     approveToken();
