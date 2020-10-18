@@ -461,7 +461,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     if (depositBlockStarts[msg.sender] > 0) {
       blocksPassed = block.number.sub(depositBlockStarts[msg.sender]);
     } else {
-      blocksPassed = 0;
+      return 0;
     }
     // This will work because amount is a token with 18 decimals
     // Take the deposit, reduce it by 1 million (by removing 6 zeroes) so you get 1
@@ -470,7 +470,12 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     // we can't go below 1 in a variable. You can't make the price 0.00001 that's why we need that 1e18 padding
     // For USDC and Tether gotta multiply by 1e12 since they have 6 decimals to get the proper result of YELD
     uint256 ibalance = balanceOf(msg.sender); // Balance of yTokens
-    uint256 accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
+    uint256 accomulatedStablecoins;
+    if (_totalSupply <= 0) {
+      accomulatedStablecoins = 0;
+    } else {
+      accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
+    }
     uint256 generatedYelds = accomulatedStablecoins.div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
@@ -545,6 +550,9 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       uint256 ibalance = balanceOf(msg.sender);
       require(_shares <= ibalance, "insufficient balance");
       pool = calcPoolValueInToken();
+      // Yeld
+      uint256 generatedYelds = getGeneratedYelds();
+      // Yeld
       uint256 stablecoinsToWithdraw = (pool.mul(_shares)).div(_totalSupply);
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
       _totalSupply = _totalSupply.sub(_shares, '#1 Total supply sub error');
@@ -555,7 +563,6 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       }
 
       // Yeld
-      uint256 generatedYelds = getGeneratedYelds();
       // Take 1% of the amount to withdraw
       uint256 onePercent = stablecoinsToWithdraw.div(100);
       depositBlockStarts[msg.sender] = block.number;
