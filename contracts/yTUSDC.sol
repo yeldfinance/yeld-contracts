@@ -372,7 +372,7 @@ interface LendingPoolAddressesProvider {
     function getLendingPoolCore() external view returns (address);
 }
 
-contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
+contract yTUSD is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -390,7 +390,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
   // Yeld
   mapping(address => uint256) public depositBlockStarts;
   address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-  address public usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+  address public tusd = 0x0000000000085d4780B73119b644AE5ecd22b376;
   address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
   address payable public retirementYeldTreasury;
   IERC20 public yeldToken;
@@ -410,13 +410,13 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
 
   Lender public provider = Lender.NONE;
 
-  constructor (address _yeldToken, address payable _retirementYeldTreasury) public ERC20Detailed("yeld USDT", "yUSDT", 6) {
-    token = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+  constructor (address _yeldToken, address payable _retirementYeldTreasury) public ERC20Detailed("yearn TUSD", "yTUSD", 18) {
+    token = address(0x0000000000085d4780B73119b644AE5ecd22b376);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
     aave = address(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8);
-    fulcrum = address(0xF013406A0B1d544238083DF0B93ad0d2cBE0f65f);
-    aaveToken = address(0x71fc860F7D3A592A4a98740e39dB31d25db65ae8);
+    fulcrum = address(0x49f4592E641820e928F9919Ef4aBd92a719B4b49);
+    aaveToken = address(0x4DA9b813057D04BAef4e5800E36083717b4a0341);
     compound = address(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
     dToken = 0;
     yeldToken = IERC20(_yeldToken);
@@ -425,7 +425,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
   }
 
   // Yeld
-  // To receive ETH after converting it from USDT
+  // To receive ETH after converting it from TUSD
   function () external payable {}
   function setRetirementYeldTreasury(address payable _treasury) public onlyOwner {
     retirementYeldTreasury = _treasury;
@@ -457,7 +457,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
     } else {
       accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
     }
-    uint256 generatedYelds = accomulatedStablecoins.mul(1e12).div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
+    uint256 generatedYelds = accomulatedStablecoins.div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
   function extractYELDEarningsWhileKeepingDeposit() public {
@@ -468,17 +468,12 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
     depositBlockStarts[msg.sender] = block.number;
     yeldToken.transfer(msg.sender, generatedYelds);
   }
-  // Converts USDT to ETH and returns how much ETH has been received from Uniswap
-  function usdtToETH(uint256 _amount) internal returns(uint256) {
-      IERC20(usdt).safeApprove(uniswapRouter, 0);
-      IERC20(usdt).safeApprove(uniswapRouter, _amount);
+  function tusdToETH(uint256 _amount) internal returns(uint256) {
+      IERC20(tusd).safeApprove(uniswapRouter, 0);
+      IERC20(tusd).safeApprove(uniswapRouter, _amount);
       address[] memory path = new address[](2);
-      path[0] = usdt;
+      path[0] = tusd;
       path[1] = weth;
-      // swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-      // 'amounts' is an array where [0] is input USDT amount and [1] is the resulting ETH after the conversion
-      // even tho we've specified the WETH address, we'll receive ETH since that's how it works on uniswap
-      // https://uniswap.org/docs/v2/smart-contracts/router02/#swapexacttokensforeth
       uint[] memory amounts = IUniswap(uniswapRouter).swapExactTokensForETH(_amount, uint(0), path, address(this), now.add(1800));
       return amounts[1];
   }
@@ -492,32 +487,32 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
   }
   // Yeld
 
-
   // Quick swap low gas method for pool swaps
   function deposit(uint256 _amount)
       external
       nonReentrant
   {
-      require(_amount > 0, "deposit must be greater than 0");
-      pool = _calcPoolValueInToken();
-      IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
-        
-      // Yeld
-      if (getGeneratedYelds() > 0) extractYELDEarningsWhileKeepingDeposit();
-      depositBlockStarts[msg.sender] = block.number;
-      // Yeld
+    require(_amount > 0, "deposit must be greater than 0");
+    pool = _calcPoolValueInToken();
 
-      // Calculate pool shares
-      uint256 shares = 0;
-      if (pool == 0) {
-        shares = _amount;
-        pool = _amount;
-      } else {
-        shares = (_amount.mul(_totalSupply)).div(pool);
-      }
-      pool = _calcPoolValueInToken();
-      _mint(msg.sender, shares);
-      rebalance();
+    IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+
+    // Yeld
+    if (getGeneratedYelds() > 0) extractYELDEarningsWhileKeepingDeposit();
+    depositBlockStarts[msg.sender] = block.number;
+    // Yeld
+
+    // Calculate pool shares
+    uint256 shares = 0;
+    if (pool == 0) {
+      shares = _amount;
+      pool = _amount;
+    } else {
+      shares = (_amount.mul(_totalSupply)).div(pool);
+    }
+    pool = _calcPoolValueInToken();
+    _mint(msg.sender, shares);
+    rebalance();
   }
 
   // No rebalance implementation for lower fees and faster swaps
@@ -528,28 +523,31 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
       require(_shares > 0, "withdraw must be greater than 0");
       uint256 ibalance = balanceOf(msg.sender);
       require(_shares <= ibalance, "insufficient balance");
+      // Could have over value from cTokens
       pool = _calcPoolValueInToken();
       // Yeld
       uint256 generatedYelds = getGeneratedYelds();
       // Yeld
+      // Calc to redeem before updating balances
       uint256 stablecoinsToWithdraw = (pool.mul(_shares)).div(_totalSupply);
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
       _totalSupply = _totalSupply.sub(_shares);
       emit Transfer(msg.sender, address(0), _shares);
+      // Check balance
       uint256 b = IERC20(token).balanceOf(address(this));
       if (b < stablecoinsToWithdraw) {
         _withdrawSome(stablecoinsToWithdraw.sub(b));
       }
 
-            // Yeld
+
+      // Yeld
       // Take 1% of the amount to withdraw
       uint256 onePercent = stablecoinsToWithdraw.div(100);
       depositBlockStarts[msg.sender] = block.number;
       yeldToken.transfer(msg.sender, generatedYelds);
-
       // Take a portion of the profits for the buy and burn and retirement yeld
-      // Convert half the USDT earned into ETH for the protocol algorithms
-      uint256 stakingProfits = usdtToETH(onePercent);
+      // Convert half the TUSD earned into ETH for the protocol algorithms
+      uint256 stakingProfits = tusdToETH(onePercent);
       uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
       if (tokensAlreadyBurned < maximumTokensToBurn) {
         // 98% is the 49% doubled since we already took the 50%
@@ -569,6 +567,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
       IERC20(token).safeTransfer(msg.sender, stablecoinsToWithdraw.sub(onePercent));
       // Yeld
 
+
       pool = _calcPoolValueInToken();
       rebalance();
   }
@@ -576,9 +575,6 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
   // Ownable setters incase of support in future for these systems
   function set_new_APR(address _new_APR) public onlyOwner {
       apr = _new_APR;
-  }
-  function set_new_FULCRUM(address _new_FULCRUM) public onlyOwner {
-      fulcrum = _new_FULCRUM;
   }
   function set_new_COMPOUND(address _new_COMPOUND) public onlyOwner {
       compound = _new_COMPOUND;
