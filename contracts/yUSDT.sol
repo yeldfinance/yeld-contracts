@@ -457,7 +457,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
     } else {
       accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
     }
-    uint256 generatedYelds = accomulatedStablecoins.mul(1e12).div(oneMillion).mul(yeldToRewardPerDay.div(1e18)).mul(blocksPassed).div(oneDayInBlocks);
+    uint256 generatedYelds = accomulatedStablecoins.mul(1e12).div(oneMillion).mul(yeldToRewardPerDay).div(1e18).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
   function extractYELDEarningsWhileKeepingDeposit() public {
