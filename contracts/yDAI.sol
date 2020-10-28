@@ -402,7 +402,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   mapping(bytes32 => uint256) public numberOfParticipants;
   mapping(address => uint256) public depositBlockStarts;
   uint256 public constant oneDayInBlocks = 6500;
-  uint256 public yeldToRewardPerDay = 100e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
+  uint256 public yeldToRewardPerDay = 50e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
 
 
@@ -480,15 +480,6 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     return generatedYelds;
   }
 
-  function extractYELDEarningsWhileKeepingDeposit() public {
-    uint256 ibalance = balanceOf(msg.sender);
-    uint256 accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
-    require(depositBlockStarts[msg.sender] > 0 && accomulatedStablecoins > 0, 'Must have deposited stablecoins beforehand');
-    uint256 generatedYelds = getGeneratedYelds();
-    depositBlockStarts[msg.sender] = block.number;
-    yeldToken.transfer(msg.sender, generatedYelds);
-  }
-
   function deposit(uint256 _amount)
       external
       nonReentrant
@@ -498,7 +489,6 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
     // Yeld
-    if (getGeneratedYelds() > 0) extractYELDEarningsWhileKeepingDeposit();
     depositBlockStarts[msg.sender] = block.number;
     // Yeld
 

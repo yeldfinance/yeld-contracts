@@ -396,7 +396,7 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   IERC20 public yeldToken;
   uint256 public maximumTokensToBurn = 50000 * 1e18;
   uint256 public constant oneDayInBlocks = 6500;
-  uint256 public yeldToRewardPerDay = 100e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
+  uint256 public yeldToRewardPerDay = 50e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
   // Yeld
 
@@ -460,14 +460,6 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
     uint256 generatedYelds = accomulatedStablecoins.mul(1e12).div(oneMillion).mul(yeldToRewardPerDay).div(1e18).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
-  function extractYELDEarningsWhileKeepingDeposit() public {
-    uint256 ibalance = balanceOf(msg.sender);
-    uint256 accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
-    require(depositBlockStarts[msg.sender] > 0 && accomulatedStablecoins > 0, 'Must have deposited stablecoins beforehand');
-    uint256 generatedYelds = getGeneratedYelds();
-    depositBlockStarts[msg.sender] = block.number;
-    yeldToken.transfer(msg.sender, generatedYelds);
-  }
   // Converts USDC to ETH and returns how much ETH has been received from Uniswap
   function usdcToETH(uint256 _amount) internal returns(uint256) {
       IERC20(usdc).safeApprove(uniswapRouter, 0);
@@ -503,7 +495,6 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
       IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
       // Yeld
-      if (getGeneratedYelds() > 0) extractYELDEarningsWhileKeepingDeposit();
       depositBlockStarts[msg.sender] = block.number;
       // Yeld
       
