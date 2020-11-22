@@ -402,7 +402,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable {
   mapping(bytes32 => uint256) public numberOfParticipants;
   mapping(address => uint256) public depositBlockStarts;
   uint256 public constant oneDayInBlocks = 6500;
-  uint256 public yeldToRewardPerDay = 50e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
+  uint256 public yeldToRewardPerDay = 150e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
 
 
