@@ -396,7 +396,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs {
   IERC20 public yeldToken;
   uint256 public maximumTokensToBurn = 50000 * 1e18;
   uint256 public constant oneDayInBlocks = 6500;
-  uint256 public yeldToRewardPerDay = 150e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
+  uint256 public yeldToRewardPerDay = 0e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
   // Yeld
 
