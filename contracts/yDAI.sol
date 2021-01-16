@@ -36,7 +36,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
   uint256 public constant oneDayInBlocks = 6500;
   uint256 public yeldToRewardPerDay = 0e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
-
+  uint256 public holdPercentage = 5e18;
 
   enum Lender {
       NONE,
@@ -116,12 +116,33 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
     return generatedYelds;
   }
 
+  function setHoldPercentage(uint256 _holdPercentage) public onlyOwner {
+    holdPercentage = _holdPercentage;
+  }
+
+  function getEstimatedETHforDAI(uint daiAmount) public view returns (uint[] memory) {
+    return uniswapRouter.getAmountsIn(daiAmount, getPathForETHtoDAI());
+  }
+
+  function getPathForETHtoDAI() private view returns (address[] memory) {
+    address[] memory path = new address[](2);
+    path[0] = uniswapRouter.WETH();
+    path[1] = multiDaiKovan;
+    
+    return path;
+  }
+
   function deposit(uint256 _amount)
       external
       nonReentrant
       noContract
   {
     require(_amount > 0, "deposit must be greater than 0");
+    uint256 yeldHold = yeldToken.balanceOf(msg.sender);
+    uint256 yeldPriceInDai = getYeldPriceInDai(address(yeld), weth, dai, uniswapRouter);
+    uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
+    uint256 yeldRequirement = amountPercentage.div(yeldPriceInDai);
+    require(yeldHold >= yeldRequirement, 'You must hold a 5% of your deposit in YELD tokens to be able to stake');
     pool = calcPoolValueInToken();
     IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 

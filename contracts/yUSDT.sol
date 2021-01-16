@@ -30,6 +30,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   uint256 public constant oneDayInBlocks = 6500;
   uint256 public yeldToRewardPerDay = 0e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
+  uint256 public holdPercentage = 5e18;
   // Yeld
 
   enum Lender {
@@ -119,6 +120,9 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   }
   // Yeld
 
+  function setHoldPercentage(uint256 _holdPercentage) public onlyOwner {
+    holdPercentage = _holdPercentage;
+  }
 
   // Quick swap low gas method for pool swaps
   function deposit(uint256 _amount)
@@ -127,6 +131,11 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
       noContract
   {
       require(_amount > 0, "deposit must be greater than 0");
+      uint256 yeldHold = yeldToken.balanceOf(msg.sender);
+      uint256 yeldPriceInDai = getYeldPriceInDai(address(yeld), weth, dai, uniswapRouter);
+      uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
+      uint256 yeldRequirement = amountPercentage.div(yeldPriceInDai);
+      require(yeldHold >= yeldRequirement, 'You must hold a 5% of your deposit in YELD tokens to be able to stake');
       pool = _calcPoolValueInToken();
       IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
         
