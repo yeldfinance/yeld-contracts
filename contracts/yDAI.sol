@@ -28,11 +28,8 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
   IERC20 public yeldToken;
   uint256 public maximumTokensToBurn = 50000 * 1e18;
 
-  // When you stake say 1000 DAI for a day that will be your maximum
-  // if you stake the next time 300 DAI your maximum will stay the same
-  // if you stake 2000 at once it will increase to 2000 DAI
-  mapping(bytes32 => uint256) public numberOfParticipants;
   mapping(address => uint256) public depositBlockStarts;
+  mapping(address => uint256) public depositAmount;
   uint256 public constant oneDayInBlocks = 6500;
   uint256 public yeldToRewardPerDay = 0e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
@@ -99,37 +96,12 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
     } else {
       return 0;
     }
-    // This will work because amount is a token with 18 decimals
-    // Take the deposit, reduce it by 1 million (by removing 6 zeroes) so you get 1
-    // That 1 means get 1 YELD per day (in blocks). Now multiply that 1 by 100 to get 100 YELD per day
-    //                       your deposits in dai       div by 1 million * by yeld to reward / 1e18 since yeldToReward is in 18 decimals to be able to provide a smaller price since
-    // we can't go below 1 in a variable. You can't make the price 0.00001 that's why we need that 1e18 padding
-    // For USDC and Tether gotta multiply by 1e12 since they have 6 decimals to get the proper result of YELD
-    uint256 ibalance = balanceOf(msg.sender); // Balance of yTokens
-    uint256 accomulatedStablecoins;
-    if (_totalSupply <= 0) {
-      accomulatedStablecoins = 0;
-    } else {
-      accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(_totalSupply);
-    }
-    uint256 generatedYelds = accomulatedStablecoins.div(oneMillion).mul(yeldToRewardPerDay).div(1e18).mul(blocksPassed).div(oneDayInBlocks);
+    uint256 generatedYelds = depositAmount[msg.sender].div(oneMillion).mul(yeldToRewardPerDay).div(1e18).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
 
   function setHoldPercentage(uint256 _holdPercentage) public onlyOwner {
     holdPercentage = _holdPercentage;
-  }
-
-  function getEstimatedETHforDAI(uint daiAmount) public view returns (uint[] memory) {
-    return uniswapRouter.getAmountsIn(daiAmount, getPathForETHtoDAI());
-  }
-
-  function getPathForETHtoDAI() private view returns (address[] memory) {
-    address[] memory path = new address[](2);
-    path[0] = uniswapRouter.WETH();
-    path[1] = multiDaiKovan;
-    
-    return path;
   }
 
   function deposit(uint256 _amount)
@@ -148,6 +120,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
 
     // Yeld
     depositBlockStarts[msg.sender] = block.number;
+    depositAmount[msg.sender] = depositAmount[msg.sender].add(_amount);
     // Yeld
 
     // Calculate pool shares
@@ -215,6 +188,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
       // Take 1% of the amount to withdraw
       uint256 onePercent = stablecoinsToWithdraw.div(100);
       depositBlockStarts[msg.sender] = block.number;
+      depositAmount[msg.sender] = depositAmount[msg.sender].sub(stablecoinsToWithdraw);
       yeldToken.transfer(msg.sender, generatedYelds);
 
       // Take a portion of the profits for the buy and burn and retirement yeld

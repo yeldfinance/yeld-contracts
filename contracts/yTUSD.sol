@@ -28,6 +28,7 @@ contract yTUSD is
 
     // Yeld
     mapping(address => uint256) public depositBlockStarts;
+    mapping(address => uint256) public depositAmount;
     address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address public tusd = 0x0000000000085d4780B73119b644AE5ecd22b376;
     address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -103,22 +104,7 @@ contract yTUSD is
         } else {
             return 0;
         }
-        uint256 ibalance = balanceOf(msg.sender); // Balance of yTokens
-        uint256 accomulatedStablecoins;
-        if (_totalSupply <= 0) {
-            accomulatedStablecoins = 0;
-        } else {
-            accomulatedStablecoins = (calcPoolValueInToken().mul(ibalance)).div(
-                _totalSupply
-            );
-        }
-        uint256 generatedYelds =
-            accomulatedStablecoins
-                .div(oneMillion)
-                .mul(yeldToRewardPerDay)
-                .div(1e18)
-                .mul(blocksPassed)
-                .div(oneDayInBlocks);
+        uint256 generatedYelds = depositAmount[msg.sender].div(oneMillion).mul(yeldToRewardPerDay).div(1e18).mul(blocksPassed).div(oneDayInBlocks);
         return generatedYelds;
     }
 
@@ -174,6 +160,7 @@ contract yTUSD is
 
         // Yeld
         depositBlockStarts[msg.sender] = block.number;
+        depositAmount[msg.sender] = depositAmount[msg.sender].add(_amount);
         // Yeld
 
         // Calculate pool shares
@@ -217,6 +204,7 @@ contract yTUSD is
         // Take 1% of the amount to withdraw
         uint256 onePercent = stablecoinsToWithdraw.div(100);
         depositBlockStarts[msg.sender] = block.number;
+        depositAmount[msg.sender] = depositAmount[msg.sender].sub(stablecoinsToWithdraw);
         yeldToken.transfer(msg.sender, generatedYelds);
         // Take a portion of the profits for the buy and burn and retirement yeld
         // Convert half the TUSD earned into ETH for the protocol algorithms
