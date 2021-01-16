@@ -90,6 +90,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
     uint256 generatedYelds = depositAmount[msg.sender].mul(1e12).div(oneMillion).mul(yeldToRewardPerDay).div(1e18).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
+  
   // Converts USDT to ETH and returns how much ETH has been received from Uniswap
   function usdtToETH(uint256 _amount) internal returns(uint256) {
       IERC20(usdt).safeApprove(uniswapRouter, 0);
