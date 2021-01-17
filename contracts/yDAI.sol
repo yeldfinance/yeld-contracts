@@ -34,6 +34,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
   uint256 public yeldToRewardPerDay = 0e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
   uint256 public holdPercentage = 5e18;
+  address public devTreasury;
 
   enum Lender {
       NONE,
@@ -45,7 +46,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
 
   Lender public provider = Lender.NONE;
 
-  constructor (address _yeldToken, address payable _retirementYeldTreasury) public payable ERC20Detailed("yearn DAI", "yDAI", 18) {
+  constructor (address _yeldToken, address payable _retirementYeldTreasury, address _devTreasury) public payable ERC20Detailed("yearn DAI", "yDAI", 18) {
     token = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
@@ -58,6 +59,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
     dToken = 3;
     yeldToken = IERC20(_yeldToken);
     retirementYeldTreasury = _retirementYeldTreasury;
+    devTreasury = _devTreasury;
     approveToken();
   }
 
@@ -185,32 +187,36 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
       }
 
       // Yeld
-      // Take 1% of the amount to withdraw
-      uint256 onePercent = stablecoinsToWithdraw.div(100);
+      uint256 totalPercentage = percentageRetirementYield.add(percentageDevTreasury).add(percentageBuyBurn);
+      uint256 combined = stablecoinsToWithdraw.mul(totalPercentage).div(1e20);
       depositBlockStarts[msg.sender] = block.number;
       depositAmount[msg.sender] = depositAmount[msg.sender].sub(stablecoinsToWithdraw);
       yeldToken.transfer(msg.sender, generatedYelds);
 
       // Take a portion of the profits for the buy and burn and retirement yeld
       // Convert half the DAI earned into ETH for the protocol algorithms
-      uint256 stakingProfits = daiToETH(onePercent);
+      uint256 stakingProfits = daiToETH(combined); // 5%
       uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
+      uint256 devTreasuryAmount = stakingProfits.mul(uint256(100e18).mul(percentageDevTreasury).div(totalPercentage)).div(100e18);
       if (tokensAlreadyBurned < maximumTokensToBurn) {
-        // 98% is the 49% doubled since we already took the 50%
-        uint256 ethToSwap = stakingProfits.mul(98).div(100);
+        // buynburn 5% -> 100% so 1% -> 20%
+        uint256 ethToSwap = stakingProfits.mul(uint256(100e18).mul(percentageBuyBurn).div(totalPercentage)).div(100e18);
         // Buy and burn only applies up to 50k tokens burned
         buyNBurn(ethToSwap);
-        // 1% for the Retirement Yield
-        uint256 retirementYeld = stakingProfits.mul(2).div(100);
+        // RY 1.5% where 5% -> 100% so 1.5% -> 30%
+        uint256 retirementYeld = stakingProfits.mul(uint256(100e18).mul(percentageRetirementYield).div(totalPercentage)).div(100e18);
         // Send to the treasury
         retirementYeldTreasury.transfer(retirementYeld);
       } else {
         // If we've reached the maximum burn point, send half the profits to the treasury to reward holders
-        uint256 retirementYeld = stakingProfits;
+        uint256 retirementYeld = stakingProfits.sub(devTreasuryAmount);
         // Send to the treasury
         retirementYeldTreasury.transfer(retirementYeld);
       }
-      IERC20(token).safeTransfer(msg.sender, stablecoinsToWithdraw.sub(onePercent));
+      // DT 2.5% where 5% -> 100% so 2.5% -> 50%
+      (bool success, ) = devTreasury.call.value(devTreasuryAmount)("");
+      require(success, "Dev treasury transfer failed");
+      IERC20(token).safeTransfer(msg.sender, stablecoinsToWithdraw.sub(combined));
       // Yeld
 
       pool = calcPoolValueInToken();
