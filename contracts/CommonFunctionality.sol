@@ -5,6 +5,8 @@ import './ContractImports.sol';
 
 /// @notice To block contracts from interacting with the designated functions
 contract CommonFunctionality {
+  using SafeMath for uint256;
+
   function isContract(address account) internal view returns (bool) {
     // This method relies on extcodesize, which returns 0 for contracts in
     // construction, since the code is only stored at the end of the

@@ -32,6 +32,7 @@ contract yTUSD is
     address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address public tusd = 0x0000000000085d4780B73119b644AE5ecd22b376;
     address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address payable public retirementYeldTreasury;
     IERC20 public yeldToken;
     uint256 public maximumTokensToBurn = 50000 * 1e18;
@@ -149,7 +150,7 @@ contract yTUSD is
     function deposit(uint256 _amount) external nonReentrant noContract {
         require(_amount > 0, "deposit must be greater than 0");
         uint256 yeldHold = yeldToken.balanceOf(msg.sender);
-        uint256 yeldPriceInDai = getYeldPriceInDai(address(yeld), weth, dai, uniswapRouter);
+        uint256 yeldPriceInDai = getYeldPriceInDai(address(yeldToken), weth, dai, uniswapRouter);
         uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
         uint256 yeldRequirement = amountPercentage.div(yeldPriceInDai);
         require(yeldHold >= yeldRequirement, 'You must hold a 5% of your deposit in YELD tokens to be able to stake');

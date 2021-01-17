@@ -25,6 +25,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
   address public usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
   address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+  address public dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address payable public retirementYeldTreasury;
   IERC20 public yeldToken;
   uint256 public maximumTokensToBurn = 50000 * 1e18;
@@ -127,10 +128,11 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   {
       require(_amount > 0, "deposit must be greater than 0");
       uint256 yeldHold = yeldToken.balanceOf(msg.sender);
-      uint256 yeldPriceInDai = getYeldPriceInDai(address(yeld), weth, dai, uniswapRouter);
+      uint256 yeldPriceInDai = getYeldPriceInDai(address(yeldToken), weth, dai, uniswapRouter);
       uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
       uint256 yeldRequirement = amountPercentage.div(yeldPriceInDai);
       require(yeldHold >= yeldRequirement, 'You must hold a 5% of your deposit in YELD tokens to be able to stake');
+
       pool = _calcPoolValueInToken();
       IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
         

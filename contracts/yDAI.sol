@@ -111,7 +111,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
   {
     require(_amount > 0, "deposit must be greater than 0");
     uint256 yeldHold = yeldToken.balanceOf(msg.sender);
-    uint256 yeldPriceInDai = getYeldPriceInDai(address(yeld), weth, dai, uniswapRouter);
+    uint256 yeldPriceInDai = getYeldPriceInDai(address(yeldToken), weth, dai, uniswapRouter);
     uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
     uint256 yeldRequirement = amountPercentage.div(yeldPriceInDai);
     require(yeldHold >= yeldRequirement, 'You must hold a 5% of your deposit in YELD tokens to be able to stake');
