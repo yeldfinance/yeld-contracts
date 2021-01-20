@@ -1,7 +1,7 @@
 // Required for the ledger provider
 const HDWalletProvider = require('truffle-hdwallet-provider');
 // const LedgerWalletProvider = require('truffle-ledger-provider');
-const infuraKey = "424377a7ed22481bbeb34bac96967b7b";
+const infuraKey = "87ac5f84d691494588f2162b15d1523d";
 const fs = require('fs');
 const mnemonic = fs.readFileSync(".secret").toString().trim();
 // const ledgerOptions = {
@@ -39,9 +39,10 @@ module.exports = {
 
     mainnet: {
       // provider: new LedgerWalletProvider(ledgerOptions, `https://mainnet.infura.io/v3/${infuraKey}`),
-      provider: new HDWalletProvider(mnemonic, `https://mainnet.infura.io/v3/${infuraKey}`),
+      provider: () => new HDWalletProvider(mnemonic, `https://mainnet.infura.io/v3/${infuraKey}`),
       network_id: 1,
-      gas: 46e6,
+      gas: 10e6,
+      gasPrice: 100e9, // 130 gwei
       confirmations: 1,    // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
     },
