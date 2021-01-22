@@ -31,9 +31,9 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
   mapping(address => uint256) public depositBlockStarts;
   mapping(address => uint256) public depositAmount;
   uint256 public constant oneDayInBlocks = 6500;
-  uint256 public yeldToRewardPerDay = 0e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
+  uint256 public yeldToRewardPerDay = 50e18; // 50 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
-  uint256 public holdPercentage = 5e18;
+  uint256 public holdPercentage = 15e18;
   address public devTreasury;
 
   enum Lender {
@@ -106,17 +106,21 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
     holdPercentage = _holdPercentage;
   }
 
+  function yeldHoldingRequirement(uint256 _amount) internal view {
+    uint256 yeldHold = yeldToken.balanceOf(msg.sender);
+    uint256 yeldPriceInDai = getYeldPriceInDai(address(yeldToken), weth, dai, uniswapRouter);
+    uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
+    uint256 yeldRequirement = amountPercentage.div(yeldPriceInDai);
+    require(yeldHold >= yeldRequirement, 'You must hold a % of your deposit in YELD tokens to be able to stake or withdraw');
+  }
+
   function deposit(uint256 _amount)
       external
       nonReentrant
       noContract
   {
     require(_amount > 0, "deposit must be greater than 0");
-    uint256 yeldHold = yeldToken.balanceOf(msg.sender);
-    uint256 yeldPriceInDai = getYeldPriceInDai(address(yeldToken), weth, dai, uniswapRouter);
-    uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
-    uint256 yeldRequirement = amountPercentage.div(yeldPriceInDai);
-    require(yeldHold >= yeldRequirement, 'You must hold a 5% of your deposit in YELD tokens to be able to stake');
+    yeldHoldingRequirement(_amount);
     pool = calcPoolValueInToken();
     IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -178,6 +182,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
       uint256 generatedYelds = getGeneratedYelds();
       // Yeld
       uint256 stablecoinsToWithdraw = (pool.mul(_shares)).div(_totalSupply);
+      yeldHoldingRequirement(stablecoinsToWithdraw);
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
       _totalSupply = _totalSupply.sub(_shares, '#1 Total supply sub error');
       emit Transfer(msg.sender, address(0), _shares);

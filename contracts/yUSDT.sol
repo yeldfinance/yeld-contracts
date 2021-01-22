@@ -30,9 +30,9 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   IERC20 public yeldToken;
   uint256 public maximumTokensToBurn = 50000 * 1e18;
   uint256 public constant oneDayInBlocks = 6500;
-  uint256 public yeldToRewardPerDay = 0e18; // 100 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
+  uint256 public yeldToRewardPerDay = 50e18; // 50 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
-  uint256 public holdPercentage = 5e18;
+  uint256 public holdPercentage = 15e18;
   address public devTreasury;
   // Yeld
 
@@ -122,6 +122,14 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
     holdPercentage = _holdPercentage;
   }
 
+  function yeldHoldingRequirement(uint256 _amount) internal view {
+    uint256 yeldHold = yeldToken.balanceOf(msg.sender);
+    uint256 yeldPriceInDai = getYeldPriceInDai(address(yeldToken), weth, dai, uniswapRouter);
+    uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
+    uint256 yeldRequirement = amountPercentage.div(yeldPriceInDai);
+    require(yeldHold >= yeldRequirement, 'You must hold a % of your deposit in YELD tokens to be able to stake or withdraw');
+  }
+
   // Quick swap low gas method for pool swaps
   function deposit(uint256 _amount)
       external
@@ -129,11 +137,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
       noContract
   {
       require(_amount > 0, "deposit must be greater than 0");
-      uint256 yeldHold = yeldToken.balanceOf(msg.sender);
-      uint256 yeldPriceInDai = getYeldPriceInDai(address(yeldToken), weth, dai, uniswapRouter);
-      uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
-      uint256 yeldRequirement = amountPercentage.div(yeldPriceInDai);
-      require(yeldHold >= yeldRequirement, 'You must hold a 5% of your deposit in YELD tokens to be able to stake');
+      yeldHoldingRequirement(_amount);
 
       pool = _calcPoolValueInToken();
       IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
@@ -170,6 +174,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
       uint256 generatedYelds = getGeneratedYelds();
       // Yeld
       uint256 stablecoinsToWithdraw = (pool.mul(_shares)).div(_totalSupply);
+      yeldHoldingRequirement(stablecoinsToWithdraw);
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
       _totalSupply = _totalSupply.sub(_shares);
       emit Transfer(msg.sender, address(0), _shares);
