@@ -189,7 +189,11 @@ contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Commo
       uint256 totalPercentage = percentageRetirementYield.add(percentageDevTreasury).add(percentageBuyBurn);
       uint256 combined = stablecoinsToWithdraw.mul(totalPercentage).div(1e20);
       depositBlockStarts[msg.sender] = block.number;
-      depositAmount[msg.sender] = depositAmount[msg.sender].sub(stablecoinsToWithdraw);
+      if (stablecoinsToWithdraw > depositAmount[msg.sender]) {
+        depositAmount[msg.sender] = 0;
+      } else {
+        depositAmount[msg.sender] = depositAmount[msg.sender].sub(stablecoinsToWithdraw);
+      }
       yeldToken.transfer(msg.sender, generatedYelds);
       // Take a portion of the profits for the buy and burn and retirement yeld
       // Convert half the USDC earned into ETH for the protocol algorithms

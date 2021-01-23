@@ -33,7 +33,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
   uint256 public constant oneDayInBlocks = 6500;
   uint256 public yeldToRewardPerDay = 50e18; // 50 YELD per day per 1 million stablecoins padded with 18 zeroes to have that flexibility
   uint256 public constant oneMillion = 1e6;
-  uint256 public holdPercentage = 15e18;
+  uint256 public holdPercentage = 5e18;
   address public devTreasury;
 
   enum Lender {
@@ -106,7 +106,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
     holdPercentage = _holdPercentage;
   }
 
-  function yeldHoldingRequirement(uint256 _amount) internal view {
+  function yeldHoldingRequirement(uint256 _amount) internal {
     uint256 yeldHold = yeldToken.balanceOf(msg.sender);
     uint256 yeldPriceInDai = getYeldPriceInDai(address(yeldToken), weth, dai, uniswapRouter);
     uint256 amountPercentage = _amount.mul(holdPercentage).div(1e20);
@@ -182,7 +182,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
       uint256 generatedYelds = getGeneratedYelds();
       // Yeld
       uint256 stablecoinsToWithdraw = (pool.mul(_shares)).div(_totalSupply);
-      yeldHoldingRequirement(stablecoinsToWithdraw);
+      yeldHold(stablecoinsToWithdraw);
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
       _totalSupply = _totalSupply.sub(_shares, '#1 Total supply sub error');
       emit Transfer(msg.sender, address(0), _shares);

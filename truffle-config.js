@@ -44,7 +44,7 @@ module.exports = {
       gas: 10e6,
       gasPrice: 100e9, // 130 gwei
       confirmations: 1,    // # of confs to wait between deployments. (default: 0)
-      timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
+      timeoutBlocks: 20000000,  // # of blocks before a deployment times out  (minimum/default: 50)
     },
   },
   // Set default mocha options here, use special reporters etc.
