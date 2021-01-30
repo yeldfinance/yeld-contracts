@@ -46,12 +46,13 @@ contract UpgradableRetirementYield is Initializable, OwnableUpgradeSafe {
         addFeeAndUpdatePrice(msg.value);
     }
 
-    function initialize(address _yeld, address payable _devTreasury) public initializer {
+    // Chi mainnet 0x0000000000004946c0e9F43F4Dee607b0eF1fA1c
+    function initialize(address _yeld, address payable _devTreasury, address _chi) public initializer {
         __Ownable_init();
         yeld = _yeld;
         pricePadding = 1e18;
         timeToExitLiquidity = 365 days;
-        chi = 0x0000000000004946c0e9F43F4Dee607b0eF1fA1c;
+        chi = _chi;
         devTreasury = _devTreasury;
         devTreasuryPercentage = 50e18; // 50% padded 1e18
     }
@@ -75,6 +76,18 @@ contract UpgradableRetirementYield is Initializable, OwnableUpgradeSafe {
         } else {
             yeldFeePrice = (_feeIn.mul(pricePadding).div(totalLiquidityLocked)).add(yeldFeePrice);
         }
+    }
+
+    function discountedLockLiquidity(uint256 _amount) public discountCHI {
+        lockLiquidity(_amount);
+    }
+
+    function discountedExtractEarnings() public discountCHI {
+        extractEarnings();
+    }
+
+    function discountedExtractLiquidity() public discountCHI {
+        extractLiquidity();
     }
 
     function lockLiquidity(uint256 _amount) public {

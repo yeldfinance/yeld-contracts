@@ -70,7 +70,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
     retirementYeldTreasury = _treasury;
   }
 
-  function setDevTreasury() public onlyOwner {
+  function setDevTreasury(address _devTreasury) public onlyOwner {
     devTreasury = _devTreasury;
   }
 
@@ -186,7 +186,7 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
       uint256 generatedYelds = getGeneratedYelds();
       // Yeld
       uint256 stablecoinsToWithdraw = (pool.mul(_shares)).div(_totalSupply);
-      yeldHold(stablecoinsToWithdraw);
+      yeldHoldingRequirement(stablecoinsToWithdraw);
       _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
       _totalSupply = _totalSupply.sub(_shares, '#1 Total supply sub error');
       emit Transfer(msg.sender, address(0), _shares);

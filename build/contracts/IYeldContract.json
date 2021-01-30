@@ -279,7 +279,7 @@
                       "name": "msg",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 11196,
+                      "referencedDeclaration": 11230,
                       "src": "379:3:3",
                       "typeDescriptions": {
                         "typeIdentifier": "t_magic_message",
@@ -373,7 +373,7 @@
                     "name": "this",
                     "nodeType": "Identifier",
                     "overloadedDeclarations": [],
-                    "referencedDeclaration": 11264,
+                    "referencedDeclaration": 11298,
                     "src": "469:4:3",
                     "typeDescriptions": {
                       "typeIdentifier": "t_contract$_Context_$2203",
@@ -393,7 +393,7 @@
                       "name": "msg",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 11196,
+                      "referencedDeclaration": 11230,
                       "src": "609:3:3",
                       "typeDescriptions": {
                         "typeIdentifier": "t_magic_message",
@@ -974,10 +974,10 @@
                       "name": "require",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [
-                        11199,
-                        11200
+                        11233,
+                        11234
                       ],
-                      "referencedDeclaration": 11200,
+                      "referencedDeclaration": 11234,
                       "src": "1031:7:3",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
@@ -1673,10 +1673,10 @@
                       "name": "require",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [
-                        11199,
-                        11200
+                        11233,
+                        11234
                       ],
-                      "referencedDeclaration": 11200,
+                      "referencedDeclaration": 11234,
                       "src": "1540:7:3",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
@@ -2433,7 +2433,7 @@
                           "name": "msg",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 11196,
+                          "referencedDeclaration": 11230,
                           "src": "2187:3:3",
                           "typeDescriptions": {
                             "typeIdentifier": "t_magic_message",
@@ -2682,7 +2682,7 @@
                               "name": "this",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
-                              "referencedDeclaration": 11268,
+                              "referencedDeclaration": 11302,
                               "src": "2293:4:3",
                               "typeDescriptions": {
                                 "typeIdentifier": "t_contract$_YeldOracle_$2470",
@@ -4148,7 +4148,7 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 11196,
+                              "referencedDeclaration": 11230,
                               "type": "msg",
                               "value": "msg"
                             },
@@ -4246,7 +4246,7 @@
                           "overloadedDeclarations": [
                             null
                           ],
-                          "referencedDeclaration": 11264,
+                          "referencedDeclaration": 11298,
                           "type": "contract Context",
                           "value": "this"
                         },
@@ -4282,7 +4282,7 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 11196,
+                              "referencedDeclaration": 11230,
                               "type": "msg",
                               "value": "msg"
                             },
@@ -4847,10 +4847,10 @@
                                 }
                               ],
                               "overloadedDeclarations": [
-                                11199,
-                                11200
+                                11233,
+                                11234
                               ],
-                              "referencedDeclaration": 11200,
+                              "referencedDeclaration": 11234,
                               "type": "function (bool,string memory) pure",
                               "value": "require"
                             },
@@ -5625,10 +5625,10 @@
                                 }
                               ],
                               "overloadedDeclarations": [
-                                11199,
-                                11200
+                                11233,
+                                11234
                               ],
-                              "referencedDeclaration": 11200,
+                              "referencedDeclaration": 11234,
                               "type": "function (bool,string memory) pure",
                               "value": "require"
                             },
@@ -6726,7 +6726,7 @@
                                   "overloadedDeclarations": [
                                     null
                                   ],
-                                  "referencedDeclaration": 11196,
+                                  "referencedDeclaration": 11230,
                                   "type": "msg",
                                   "value": "msg"
                                 },
@@ -6964,7 +6964,7 @@
                                       "overloadedDeclarations": [
                                         null
                                       ],
-                                      "referencedDeclaration": 11268,
+                                      "referencedDeclaration": 11302,
                                       "type": "contract YeldOracle",
                                       "value": "this"
                                     },
@@ -8056,7 +8056,7 @@
   },
   "networks": {},
   "schemaVersion": "3.3.3",
-  "updatedAt": "2021-01-22T14:10:56.827Z",
+  "updatedAt": "2021-01-30T18:30:23.329Z",
   "devdoc": {
     "methods": {}
   },

@@ -5,6 +5,7 @@ const utils = require('./utils')
 const UpgradableRetirementYield = artifacts.require('UpgradableRetirementYield')
 const TestToken = artifacts.require('TestToken')
 let yeld
+let chi
 let upgradableRetirementYield
 let devTreasury
 
@@ -14,10 +15,12 @@ contract('UpgradableRetirementYield', accs => {
 
 	beforeEach(async () => {
 		devTreasury = accs[8]
+		chi = await deployProxy(TestToken, [])
 		yeld = await deployProxy(TestToken, [])
 		upgradableRetirementYield = await deployProxy(UpgradableRetirementYield, [
 			yeld.address,
 			devTreasury,
+			chi.address,
 		])
 	})
 

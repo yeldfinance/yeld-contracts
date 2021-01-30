@@ -74,7 +74,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   function setYeldToken(address _yeldToken) public onlyOwner {
     yeldToken = IERC20(_yeldToken);
   }
-  function setDevTreasury() public onlyOwner {
+  function setDevTreasury(address _devTreasury) public onlyOwner {
     devTreasury = _devTreasury;
   }
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
