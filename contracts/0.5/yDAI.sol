@@ -70,6 +70,10 @@ contract yDAI is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, Common
     retirementYeldTreasury = _treasury;
   }
 
+  function setDevTreasury() public onlyOwner {
+    devTreasury = _devTreasury;
+  }
+
   // In case a new uniswap router version is released
   function setUniswapRouter(address _uniswapRouter) public onlyOwner {
     uniswapRouter = _uniswapRouter;

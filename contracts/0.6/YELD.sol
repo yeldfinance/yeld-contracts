@@ -2,7 +2,7 @@
  *Submitted for verification at Etherscan.io on 2020-09-03
 */
 
-pragma solidity 0.6.0;
+pragma solidity 0.6.2;
 
 library SafeMath {
     function add(uint256 a, uint256 b) internal pure returns (uint256) {

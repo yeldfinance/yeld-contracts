@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import './ContractImports.sol';
 import './CommonFunctionality.sol';
 
-contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, CommonFunctionality {
+contract yUSDC is ERC20, ERC20Detailed, ReentrancyGuard, Structs, Ownable, CommonFunctionality {
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -23,7 +23,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   mapping(address => uint256) public depositBlockStarts;
   mapping(address => uint256) public depositAmount;
   address public uniswapRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-  address public usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+  address public usdc = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
   address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
   address public dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address payable public retirementYeldTreasury;
@@ -46,15 +46,15 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
 
   Lender public provider = Lender.NONE;
 
-  constructor (address _yeldToken, address payable _retirementYeldTreasury, address _devTreasury) public ERC20Detailed("yeld USDT", "yUSDT", 6) {
-    token = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+  constructor (address _yeldToken, address payable _retirementYeldTreasury, address _devTreasury) public ERC20Detailed("yeld USDC", "yUSDC", 6) {
+    token = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     apr = address(0xdD6d648C991f7d47454354f4Ef326b04025a48A8);
     dydx = address(0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e);
     aave = address(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8);
     fulcrum = address(0xF013406A0B1d544238083DF0B93ad0d2cBE0f65f);
-    aaveToken = address(0x71fc860F7D3A592A4a98740e39dB31d25db65ae8);
+    aaveToken = address(0x9bA00D6856a4eDF4665BcA2C2309936572473B7E);
     compound = address(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
-    dToken = 0;
+    dToken = 2;
     yeldToken = IERC20(_yeldToken);
     retirementYeldTreasury = _retirementYeldTreasury;
     devTreasury = _devTreasury;
@@ -62,7 +62,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   }
 
   // Yeld
-  // To receive ETH after converting it from USDT
+  // To receive ETH after converting it from USDC
   function () external payable {}
   function setRetirementYeldTreasury(address payable _treasury) public onlyOwner {
     retirementYeldTreasury = _treasury;
@@ -73,6 +73,9 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   }
   function setYeldToken(address _yeldToken) public onlyOwner {
     yeldToken = IERC20(_yeldToken);
+  }
+  function setDevTreasury() public onlyOwner {
+    devTreasury = _devTreasury;
   }
   function extractTokensIfStuck(address _token, uint256 _amount) public onlyOwner {
     IERC20(_token).transfer(msg.sender, _amount);
@@ -93,16 +96,15 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
     uint256 generatedYelds = depositAmount[msg.sender].mul(1e12).div(oneMillion).mul(yeldToRewardPerDay).div(1e18).mul(blocksPassed).div(oneDayInBlocks);
     return generatedYelds;
   }
-  
-  // Converts USDT to ETH and returns how much ETH has been received from Uniswap
-  function usdtToETH(uint256 _amount) internal returns(uint256) {
-      IERC20(usdt).safeApprove(uniswapRouter, 0);
-      IERC20(usdt).safeApprove(uniswapRouter, _amount);
+  // Converts USDC to ETH and returns how much ETH has been received from Uniswap
+  function usdcToETH(uint256 _amount) internal returns(uint256) {
+      IERC20(usdc).safeApprove(uniswapRouter, 0);
+      IERC20(usdc).safeApprove(uniswapRouter, _amount);
       address[] memory path = new address[](2);
-      path[0] = usdt;
+      path[0] = usdc;
       path[1] = weth;
       // swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-      // 'amounts' is an array where [0] is input USDT amount and [1] is the resulting ETH after the conversion
+      // 'amounts' is an array where [0] is input USDC amount and [1] is the resulting ETH after the conversion
       // even tho we've specified the WETH address, we'll receive ETH since that's how it works on uniswap
       // https://uniswap.org/docs/v2/smart-contracts/router02/#swapexacttokensforeth
       uint[] memory amounts = IUniswap(uniswapRouter).swapExactTokensForETH(_amount, uint(0), path, address(this), now.add(1800));
@@ -117,7 +119,6 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
     return amounts[1];
   }
   // Yeld
-
   function setHoldPercentage(uint256 _holdPercentage) public onlyOwner {
     holdPercentage = _holdPercentage;
   }
@@ -140,13 +141,14 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
       yeldHoldingRequirement(_amount);
 
       pool = _calcPoolValueInToken();
+
       IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
-        
+
       // Yeld
       depositBlockStarts[msg.sender] = block.number;
       depositAmount[msg.sender] = depositAmount[msg.sender].add(_amount);
       // Yeld
-
+      
       // Calculate pool shares
       uint256 shares = 0;
       if (pool == 0) {
@@ -169,6 +171,7 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
       require(_shares > 0, "withdraw must be greater than 0");
       uint256 ibalance = balanceOf(msg.sender);
       require(_shares <= ibalance, "insufficient balance");
+      // Could have over value from cTokens
       pool = _calcPoolValueInToken();
       // Yeld
       uint256 generatedYelds = getGeneratedYelds();
@@ -183,7 +186,9 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
         _withdrawSome(stablecoinsToWithdraw.sub(b));
       }
 
+
       // Yeld
+      // Take 1% of the amount to withdraw
       uint256 totalPercentage = percentageRetirementYield.add(percentageDevTreasury).add(percentageBuyBurn);
       uint256 combined = stablecoinsToWithdraw.mul(totalPercentage).div(1e20);
       depositBlockStarts[msg.sender] = block.number;
@@ -193,10 +198,9 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
         depositAmount[msg.sender] = depositAmount[msg.sender].sub(stablecoinsToWithdraw);
       }
       yeldToken.transfer(msg.sender, generatedYelds);
-
       // Take a portion of the profits for the buy and burn and retirement yeld
-      // Convert half the USDT earned into ETH for the protocol algorithms
-      uint256 stakingProfits = usdtToETH(combined);
+      // Convert half the USDC earned into ETH for the protocol algorithms
+      uint256 stakingProfits = usdcToETH(combined);
       uint256 tokensAlreadyBurned = yeldToken.balanceOf(address(0));
       uint256 devTreasuryAmount = stakingProfits.mul(uint256(100e18).mul(percentageDevTreasury).div(totalPercentage)).div(100e18);
       if (tokensAlreadyBurned < maximumTokensToBurn) {
@@ -210,25 +214,11 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
       }
       (bool success, ) = devTreasury.call.value(devTreasuryAmount)("");
       require(success, "Dev treasury transfer failed");
-      IERC20(token).safeTransfer(msg.sender, stablecoinsToWithdraw.sub(combined));
+      IERC20(token).transfer(msg.sender, stablecoinsToWithdraw.sub(combined));
       // Yeld
 
       pool = _calcPoolValueInToken();
       rebalance();
-  }
-
-  // Ownable setters incase of support in future for these systems
-  function set_new_APR(address _new_APR) public onlyOwner {
-      apr = _new_APR;
-  }
-  function set_new_FULCRUM(address _new_FULCRUM) public onlyOwner {
-      fulcrum = _new_FULCRUM;
-  }
-  function set_new_COMPOUND(address _new_COMPOUND) public onlyOwner {
-      compound = _new_COMPOUND;
-  }
-  function set_new_DTOKEN(uint256 _new_DTOKEN) public onlyOwner {
-      dToken = _new_DTOKEN;
   }
 
   function recommend() public view returns (Lender) {
@@ -490,6 +480,29 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
       require(Compound(compound).redeem(amount) == 0, "COMPOUND: withdraw failed");
   }
 
+  function invest(uint256 _amount)
+      external
+      nonReentrant
+  {
+      require(_amount > 0, "deposit must be greater than 0");
+      pool = calcPoolValueInToken();
+
+      IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+
+      rebalance();
+
+      // Calculate pool shares
+      uint256 shares = 0;
+      if (pool == 0) {
+        shares = _amount;
+        pool = _amount;
+      } else {
+        shares = (_amount.mul(_totalSupply)).div(pool);
+      }
+      pool = calcPoolValueInToken();
+      _mint(msg.sender, shares);
+  }
+
   function _calcPoolValueInToken() internal view returns (uint) {
     return _balanceCompoundInToken()
       .add(_balanceFulcrumInToken())
@@ -509,5 +522,46 @@ contract yUSDT is ERC20, ERC20Detailed, ReentrancyGuard, Ownable, Structs, Commo
   function getPricePerFullShare() public view returns (uint) {
     uint _pool = calcPoolValueInToken();
     return _pool.mul(1e18).div(_totalSupply);
+  }
+
+  // Redeem any invested tokens from the pool
+  function redeem(uint256 _shares)
+      external
+      nonReentrant
+  {
+      require(_shares > 0, "withdraw must be greater than 0");
+
+      uint256 ibalance = balanceOf(msg.sender);
+      require(_shares <= ibalance, "insufficient balance");
+
+      // Could have over value from cTokens
+      pool = calcPoolValueInToken();
+      // Calc to redeem before updating balances
+      uint256 r = (pool.mul(_shares)).div(_totalSupply);
+
+
+      _balances[msg.sender] = _balances[msg.sender].sub(_shares, "redeem amount exceeds balance");
+      _totalSupply = _totalSupply.sub(_shares);
+
+      emit Transfer(msg.sender, address(0), _shares);
+
+      // Check ETH balance
+      uint256 b = IERC20(token).balanceOf(address(this));
+      Lender newProvider = provider;
+      if (b < r) {
+        newProvider = recommend();
+        if (newProvider != provider) {
+          _withdrawAll();
+        } else {
+          _withdrawSome(r.sub(b));
+        }
+      }
+
+      IERC20(token).safeTransfer(msg.sender, r);
+
+      if (newProvider != provider) {
+        _rebalance(newProvider);
+      }
+      pool = calcPoolValueInToken();
   }
 }

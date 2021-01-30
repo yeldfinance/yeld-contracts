@@ -85,6 +85,10 @@ contract yTUSD is
       yeldToken = IERC20(_yeldToken);
     }
 
+    function setDevTreasury() public onlyOwner {
+        devTreasury = _devTreasury;
+    }
+
     function extractTokensIfStuck(address _token, uint256 _amount)
         public
         onlyOwner

@@ -1,0 +1,272 @@
+{
+  "manifestVersion": "3.1",
+  "impls": {
+    "33962bcae459f72b7c1789da853ac8f6d0c0fb4f9a4594f137926b602dbd4ba1": {
+      "address": "0x8CdaF0CD259887258Bc13a92C0a6dA92698644C0",
+      "txHash": "0xb8990e9e72d61244023bfb3a31b49d603c07a81871c83db44404332f3cb4f29e",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\test-contracts\\ExampleV2.sol:18"
+          },
+          {
+            "contract": "Initializable",
+            "label": "initializing",
+            "type": "t_bool",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\test-contracts\\ExampleV2.sol:18"
+          },
+          {
+            "contract": "Initializable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\test-contracts\\ExampleV2.sol:18"
+          },
+          {
+            "contract": "ContextUpgradeSafe",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "..\\@openzeppelin\\contracts-ethereum-package\\contracts\\GSN\\Context.sol:37"
+          },
+          {
+            "contract": "OwnableUpgradeSafe",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "..\\@openzeppelin\\contracts-ethereum-package\\contracts\\access\\Ownable.sol:18"
+          },
+          {
+            "contract": "OwnableUpgradeSafe",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "..\\@openzeppelin\\contracts-ethereum-package\\contracts\\access\\Ownable.sol:78"
+          },
+          {
+            "contract": "ERC20UpgradeSafe",
+            "label": "_balances",
+            "type": "t_mapping(t_address,t_uint256)",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\CommonFunctionality.sol:44"
+          },
+          {
+            "contract": "ERC20UpgradeSafe",
+            "label": "_allowances",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\CommonFunctionality.sol:44"
+          },
+          {
+            "contract": "ERC20UpgradeSafe",
+            "label": "_totalSupply",
+            "type": "t_uint256",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\CommonFunctionality.sol:44"
+          },
+          {
+            "contract": "ERC20UpgradeSafe",
+            "label": "_name",
+            "type": "t_string_storage",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\CommonFunctionality.sol:44"
+          },
+          {
+            "contract": "ERC20UpgradeSafe",
+            "label": "_symbol",
+            "type": "t_string_storage",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\CommonFunctionality.sol:44"
+          },
+          {
+            "contract": "ERC20UpgradeSafe",
+            "label": "_decimals",
+            "type": "t_uint8",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\CommonFunctionality.sol:44"
+          },
+          {
+            "contract": "ERC20UpgradeSafe",
+            "label": "__gap",
+            "type": "t_array(t_uint256)44_storage",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\CommonFunctionality.sol:44"
+          }
+        ],
+        "types": {
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(address => mapping(address => uint256))"
+          },
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_uint8": {
+            "label": "uint8"
+          },
+          "t_array(t_uint256)44_storage": {
+            "label": "uint256[44]"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "45fd733e554b1675e76415fa399e5e4810f7446763be45cd305bdf9747c109c5": {
+      "address": "0xf25186B5081Ff5cE73482AD761DB0eB0d25abfBF",
+      "txHash": "0x86e7d6de0f196f883aba7ce58cce359c530d93fb4ca9667fbe77051a7c18c05f",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\test-contracts\\ExampleV2.sol:18"
+          },
+          {
+            "contract": "Initializable",
+            "label": "initializing",
+            "type": "t_bool",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\test-contracts\\ExampleV2.sol:18"
+          },
+          {
+            "contract": "Initializable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\test-contracts\\ExampleV2.sol:18"
+          },
+          {
+            "contract": "ContextUpgradeSafe",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "..\\@openzeppelin\\contracts-ethereum-package\\contracts\\GSN\\Context.sol:37"
+          },
+          {
+            "contract": "OwnableUpgradeSafe",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "..\\@openzeppelin\\contracts-ethereum-package\\contracts\\access\\Ownable.sol:18"
+          },
+          {
+            "contract": "OwnableUpgradeSafe",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "..\\@openzeppelin\\contracts-ethereum-package\\contracts\\access\\Ownable.sol:78"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "amountLocked",
+            "type": "t_mapping(t_address,t_uint256)",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:18"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "lastPriceEarningsExtracted",
+            "type": "t_mapping(t_address,t_uint256)",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:20"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "lockingTime",
+            "type": "t_mapping(t_address,t_uint256)",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:22"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "yeld",
+            "type": "t_address",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:24"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "totalLiquidityLocked",
+            "type": "t_uint256",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:26"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "totalYeldFeeMined",
+            "type": "t_uint256",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:28"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "yeldFeePrice",
+            "type": "t_uint256",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:29"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "accomulatedRewards",
+            "type": "t_uint256",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:30"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "pricePadding",
+            "type": "t_uint256",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:31"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "timeToExitLiquidity",
+            "type": "t_uint256",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:32"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "chi",
+            "type": "t_address",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:33"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "devTreasury",
+            "type": "t_address_payable",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:34"
+          },
+          {
+            "contract": "UpgradableRetirementYield",
+            "label": "devTreasuryPercentage",
+            "type": "t_uint256",
+            "src": "..\\..\\..\\..\\..\\..\\C\\Users\\merun\\Desktop\\yeld & crypto\\yeld-contracts\\contracts\\UpgradableRetirementYield.sol:35"
+          }
+        ],
+        "types": {
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_address_payable": {
+            "label": "address payable"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    }
+  },
+  "admin": {
+    "address": "0xF12b5dd4EAD5F743C6BaA640B0216200e89B60Da",
+    "txHash": "0xb516bdbfabfdaf9e385bcc7dec6f1a4578cde5ff64b6f01998e8293639731e86"
+  }
+}
